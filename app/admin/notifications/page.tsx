@@ -60,7 +60,7 @@ const getIcon = (type: string) => {
 
 export default function NotificationsPage() {
   return (
-    <div className="space-y-6">
+    <div className="pl-34">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-gray-900">Notifications</h1>
         <button className="px-4 py-2 text-sm font-medium text-primary hover:text-primary/80">
