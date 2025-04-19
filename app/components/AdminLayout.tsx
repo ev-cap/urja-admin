@@ -123,10 +123,17 @@ export default function AdminLayout({
                 </div>
               </div>
               <div className="mt-4 space-y-1">
-                <button className="flex items-center w-full px-4 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-100">
-                  <BellIcon className="w-5 h-5 mr-3" />
+                <Link
+                  href="/admin/notifications"
+                  className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                    pathname === '/admin/notifications'
+                      ? 'bg-primary/20 text-primary border-l-4 border-primary'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <BellIcon className={`w-5 h-5 mr-3 ${pathname === '/admin/notifications' ? 'text-primary' : 'text-gray-500'}`} />
                   Notifications
-                </button>
+                </Link>
                 <button className="flex items-center w-full px-4 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50">
                   <ArrowLeftOnRectangleIcon className="w-5 h-5 mr-3" />
                   Logout
