@@ -35,6 +35,7 @@ const navigation = [
   { name: 'RBAC', href: '/admin/rbac', icon: ShieldCheckIcon },
   { name: 'Notifications', href: '/admin/notifications', icon: BellIcon },
   { name: 'Reviews and Ratings', href: '/admin/reviews', icon: StarIcon },
+  { name: 'User Management', href: '/admin/users', icon: UserGroupIcon },
   { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
 ]
 
