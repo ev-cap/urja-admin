@@ -20,6 +20,7 @@ import {
   ShieldCheckIcon,
   Bars3Icon,
   XMarkIcon,
+  StarIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
@@ -33,6 +34,7 @@ const navigation = [
   { name: 'Community', href: '/admin/community', icon: UsersIcon },
   { name: 'RBAC', href: '/admin/rbac', icon: ShieldCheckIcon },
   { name: 'Notifications', href: '/admin/notifications', icon: BellIcon },
+  { name: 'Reviews and Ratings', href: '/admin/reviews', icon: StarIcon },
   { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon },
 ]
 
