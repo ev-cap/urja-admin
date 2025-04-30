@@ -1,3 +1,6 @@
+'use client'
+
+import { useEffect, useState, Fragment } from 'react';
 import AdminLayout from '../../components/AdminLayout'
 import {
   UserGroupIcon,
@@ -9,6 +12,32 @@ import {
   PhoneIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline'
+
+interface User {
+  id: number;
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  passwordHash: string;
+  authProvider: string;
+  createdAt: Date;
+  updatedAt: Date;
+  rewardPoints: number;
+  isactive: boolean;
+  preferences: object;
+  vehicles: object[];
+  notificationsSettings: object[];
+}
+
+interface Vehicle {
+  id?: string;  // Making id optional since it might be undefined
+  make: string;
+  model: string;
+  year: number;
+  licensePlate: string;
+  type: string;
+}
 
 const dummyUsers = [
   {
@@ -63,7 +92,98 @@ const dummyUsers = [
   },
 ]
 
+function getStatusStyle(status: string) {
+  switch (status) {
+    case 'Active':
+      return 'bg-green-100 text-green-800';
+    case 'Suspended':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
+  }
+}
+
+const getVehicleTypeIcon = (type: string) => {
+  return <span className="text-gray-600 font-medium">{type}</span>;
+};
+
+const getEnabledNotificationsCount = (settings: any) => {
+  if (!settings || typeof settings !== 'object') return 0;
+  
+  // Count only top-level boolean true values, ignore nested objects
+  return Object.entries(settings).reduce((count, [key, value]) => {
+    // Skip if the value is an object (like modesToUpdate)
+    if (typeof value === 'object') return count;
+    // Only count boolean true values
+    return count + (value === true ? 1 : 0);
+  }, 0);
+};
+
 export default function UsersPage() {
+  const [Users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [expandedNotificationsId, setExpandedNotificationsId] = useState<number | null>(null);
+
+  const toggleVehicleDetails = (userId: number) => {
+    setExpandedUserId(currentId => currentId === userId ? null : userId);
+    // Close notifications when vehicles are opened
+    setExpandedNotificationsId(null);
+  };
+
+  const toggleNotificationDetails = (userId: number) => {
+    setExpandedNotificationsId(currentId => currentId === userId ? null : userId);
+    // Close vehicles when notifications are opened
+    setExpandedUserId(null);
+  };
+
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        console.log('Making API request to:', 'http://127.0.0.1:4000/users');
+        
+        const res = await fetch('http://127.0.0.1:4000/users', {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store',
+        });
+        
+        console.log('Response status:', res.status);
+        console.log('Response headers:', Object.fromEntries(res.headers.entries()));
+        
+        const data = await res.json();
+        console.log('Raw API Response:', data);
+        
+        // Ensure data is an array before setting it
+        if (Array.isArray(data)) {
+          setUsers(data);
+        } else if (data && typeof data === 'object') {
+          // If data is an object, try to extract an array from it
+          const UsersArray = Object.values(data).find(Array.isArray);
+          if (UsersArray) {
+            setUsers(UsersArray);
+          } else {
+            setError('Unexpected response format');
+          }
+        } else {
+          setError('Invalid response format');
+        }
+        
+      } catch (error) {
+        console.error('Error fetching Users:', error);
+        setError('Failed to fetch Users data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUsers();
+  }, []);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -195,11 +315,7 @@ export default function UsersPage() {
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              user.status === 'Active'
-                                ? 'bg-green-100 text-green-800'
-                                : user.status === 'Suspended'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
+                              getStatusStyle(user.status)
                             }`}
                           >
                             {user.status}
@@ -233,7 +349,240 @@ export default function UsersPage() {
             </div>
           </div>
         </div>
+
+        {/* API Users Table */}
+        <div className="mt-8 flow-root">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">API Users</h2>
+          {loading ? (
+            <p>Loading users...</p>
+          ) : error ? (
+            <p className="text-red-500">{error}</p>
+          ) : (
+            <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-300">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Name
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Contact
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Auth Provider
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Vehicles
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Notifications
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Reward Points
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Status
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Created At
+                        </th>
+                        <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                          Updated At
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {Users.map((user) => (
+                        <Fragment key={user.id}>
+                          <tr>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {user.firstname} {user.lastname}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <div className="flex items-center space-x-2">
+                                <EnvelopeIcon className="h-4 w-4 text-gray-400" />
+                                <span>{user.email}</span>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <PhoneIcon className="h-4 w-4 text-gray-400" />
+                                <span>{user.phone}</span>
+                              </div>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                {user.authProvider}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <button
+                                onClick={() => toggleVehicleDetails(user.id)}
+                                className="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-800 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                              >
+                                {Array.isArray(user.vehicles) ? user.vehicles.length : 0} vehicles
+                                <svg
+                                  className={`ml-1.5 h-4 w-4 transition-transform ${
+                                    expandedUserId === user.id ? 'rotate-180' : ''
+                                  }`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <button
+                                onClick={() => toggleNotificationDetails(user.id)}
+                                className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                              >
+                                {getEnabledNotificationsCount(user.notificationsSettings)} enabled
+                                <svg
+                                  className={`ml-1.5 h-4 w-4 transition-transform ${
+                                    expandedNotificationsId === user.id ? 'rotate-180' : ''
+                                  }`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
+                                {user.rewardPoints || 0} points
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                                user.isactive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                              }`}>
+                                {user.isactive ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {new Date(user.createdAt).toLocaleDateString()}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {new Date(user.updatedAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                          {expandedUserId === user.id && Array.isArray(user.vehicles) && user.vehicles.length > 0 && (
+                            <tr>
+                              <td colSpan={9} className="px-3 py-4 bg-gray-50">
+                                <div className="overflow-x-auto rounded-lg bg-white shadow-inner border border-gray-200 p-4">
+                                  <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-100 rounded-t-lg">
+                                      <tr>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Make
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Model
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Year
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          License Plate
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Type
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-100">
+                                      {(user.vehicles as Vehicle[]).map((vehicle, index) => (
+                                        <tr key={`${user.id}-vehicle-${vehicle.id ?? index}`} 
+                                            className="text-sm hover:bg-gray-50 transition-colors duration-150">
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.make}</td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.model}</td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.year}</td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.licensePlate}</td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 flex justify-start items-center">
+                                            {getVehicleTypeIcon(vehicle.type)}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          {expandedNotificationsId === user.id && user.notificationsSettings && (
+                            <tr>
+                              <td colSpan={9} className="px-3 py-4 bg-gray-50">
+                                <div className="overflow-x-auto rounded-lg bg-white shadow-inner border border-gray-200 p-4">
+                                  <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-100 rounded-t-lg">
+                                      <tr>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Setting
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Status
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Modes
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-100">
+                                      {Object.entries(user.notificationsSettings).map(([key, value], index) => (
+                                        <tr key={`${user.id}-notification-${index}`} 
+                                            className="text-sm hover:bg-gray-50 transition-colors duration-150">
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600 capitalize">
+                                            {key.replace(/([A-Z])/g, ' $1').toLowerCase()}
+                                          </td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">
+                                            {typeof value === 'boolean' ? (
+                                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                                                value ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                              }`}>
+                                                {value ? 'Enabled' : 'Disabled'}
+                                              </span>
+                                            ) : (
+                                              '-'
+                                            )}
+                                          </td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">
+                                            {typeof value === 'object' && value !== null ? (
+                                              <div className="flex gap-2">
+                                                {Object.entries(value).map(([modeKey, modeValue]) => (
+                                                  modeValue === true && (
+                                                    <span key={modeKey} className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                      {modeKey}
+                                                    </span>
+                                                  )
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              '-'
+                                            )}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </AdminLayout>
   )
-} 
+}
+
