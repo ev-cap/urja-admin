@@ -10,9 +10,9 @@ import {
   ShieldCheckIcon,
   EnvelopeIcon,
   PhoneIcon,
-  CalendarIcon,
   Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
+import { mdiCarElectric, mdiMotorbike } from '@mdi/js'
 
 interface User {
   id: number;
@@ -39,8 +39,10 @@ interface Vehicle {
   make: string;
   model: string;
   year: number;
-  licensePlate: string;
   type: string;
+  batteryCapacityKWh: number;
+  connectorType: string;
+  isPrimary?: boolean;
 }
 
 interface PaymentMethod {
@@ -196,7 +198,28 @@ const PreferenceValue = ({ value, keyName }: { value: any; keyName: string }) =>
 };
 
 const getVehicleTypeIcon = (type: string) => {
-  return <span className="text-gray-600 font-medium">{type}</span>;
+  switch (type.toLowerCase()) {
+    case 'car':
+      return (
+        <span className="inline-flex items-center">
+          <svg className="h-5 w-5 text-blue-500 mr-2" viewBox="0 0 24 24">
+            <path fill="currentColor" d={mdiCarElectric} />
+          </svg>
+          <span className="text-gray-600 font-medium">{type}</span>
+        </span>
+      );
+    case 'bike':
+      return (
+        <span className="inline-flex items-center">
+          <svg className="h-5 w-5 text-green-500 mr-2" viewBox="0 0 24 24">
+            <path fill="currentColor" d={mdiMotorbike} />
+          </svg>
+          <span className="text-gray-600 font-medium">{type}</span>
+        </span>
+      );
+    default:
+      return <span className="text-gray-600 font-medium">{type}</span>;
+  }
 };
 
 const getEnabledNotificationsCount = (settings: any) => {
@@ -513,6 +536,9 @@ export default function UsersPage() {
                                     <thead className="bg-gray-100 rounded-t-lg">
                                       <tr>
                                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                                          Type
+                                        </th>
+                                        <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                                           Make
                                         </th>
                                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
@@ -522,24 +548,36 @@ export default function UsersPage() {
                                           Year
                                         </th>
                                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                          License Plate
+                                          Battery Capacity (kWh)
                                         </th>
                                         <th scope="col" className="px-3 py-2 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                                          Type
+                                          Connector Type
                                         </th>
                                       </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-100">
                                       {(user.vehicles as Vehicle[]).map((vehicle, index) => (
                                         <tr key={`${user.id}-vehicle-${vehicle.id ?? index}`} 
-                                            className="text-sm hover:bg-gray-50 transition-colors duration-150">
+                                            className={`text-sm transition-colors duration-150 ${
+                                              vehicle.isPrimary 
+                                                ? 'bg-indigo-50 hover:bg-indigo-100' 
+                                                : 'hover:bg-gray-50'
+                                            }`}>
+                                          <td className="whitespace-nowrap px-3 py-2.5 flex justify-start items-center relative">
+                                            <div className="relative inline-flex items-center">
+                                              {getVehicleTypeIcon(vehicle.type)}
+                                              {vehicle.isPrimary && (
+                                                <span className="absolute -top-3 left-full ml-1 inline-flex items-center px-1.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-600 text-white ring-1 ring-white">
+                                                  Primary
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
                                           <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.make}</td>
                                           <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.model}</td>
                                           <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.year}</td>
-                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.licensePlate}</td>
-                                          <td className="whitespace-nowrap px-3 py-2.5 flex justify-start items-center">
-                                            {getVehicleTypeIcon(vehicle.type)}
-                                          </td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.batteryCapacityKWh}</td>
+                                          <td className="whitespace-nowrap px-3 py-2.5 text-gray-600">{vehicle.connectorType}</td>
                                         </tr>
                                       ))}
                                     </tbody>
