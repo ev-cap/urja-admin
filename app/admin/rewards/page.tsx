@@ -19,25 +19,56 @@ interface Reward {
   redeemed_at?: string;
 }
 
+interface Referral {
+  id: string;
+  referrerId: string;
+  refereeId: string;
+  referralCode: string;
+  referralDate: string;
+  rewardAmount: number;
+  rewardStatus: string;
+  redeemedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function RewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchRewards = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:4000/rewards');
-        const data = await response.json();
-        console.log('Rewards API Response:', data);
-        setRewards(Array.isArray(data) ? data : data.rewards ?? []);
+        // Fetch rewards data
+        const rewardsResponse = await fetch('http://127.0.0.1:4000/rewards');
+        const rewardsData = await rewardsResponse.json();
+        console.log('Rewards API Response:', rewardsData);
+        setRewards(Array.isArray(rewardsData) ? rewardsData : rewardsData.rewards ?? []);
+
+        // Fetch referrals data
+        const referralsResponse = await fetch('http://127.0.0.1:4000/referrals');
+        const referralsData = await referralsResponse.json();
+        console.log('Referrals API Response:', referralsData);
+        
+        // Handle both direct array and nested object responses
+        if (Array.isArray(referralsData)) {
+          setReferrals(referralsData);
+        } else if (referralsData && typeof referralsData === 'object') {
+          // Try to find an array in the response object
+          const referralsArray = Object.values(referralsData).find(Array.isArray) ?? referralsData.referrals ?? [];
+          setReferrals(referralsArray);
+        } else {
+          setReferrals([]);
+        }
       } catch (error) {
-        console.error('Error fetching rewards:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRewards();
+    fetchData();
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -80,6 +111,36 @@ export default function RewardsPage() {
     }
   };
 
+  const getReferralCodeBadgeStyle = (code: string) => {
+    // Different colors for different referral code patterns
+    if (code.includes('EV')) {
+      return 'bg-indigo-100 text-indigo-800'; // EV related codes
+    } else if (code.includes('FAM')) {
+      return 'bg-emerald-100 text-emerald-800'; // Family related codes
+    } else if (code.includes('10')) {
+      return 'bg-amber-100 text-amber-800'; // Codes with numbers
+    } else {
+      return 'bg-slate-100 text-slate-800'; // Default style
+    }
+  };
+
+  const getReferralStatusBadgeStyle = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'expired':
+        return 'bg-red-100 text-red-800';
+      case 'earned':
+        return 'bg-blue-100 text-blue-800';
+      case 'redeemed':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="sm:flex sm:items-center">
@@ -96,26 +157,6 @@ export default function RewardsPage() {
           >
             Create Reward
           </button>
-        </div>
-      </div>
-      <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-          <dt className="truncate text-sm font-medium text-gray-500">Total Points Earned</dt>
-          <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
-            {rewards.reduce((sum, reward) => sum + reward.total_earned, 0)}
-          </dd>
-        </div>
-        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-          <dt className="truncate text-sm font-medium text-gray-500">Total Points Redeemed</dt>
-          <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
-            {rewards.reduce((sum, reward) => sum + reward.total_redeemed, 0)}
-          </dd>
-        </div>
-        <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-          <dt className="truncate text-sm font-medium text-gray-500">Active Rewards</dt>
-          <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
-            {rewards.filter(reward => reward.status === 'active').length}
-          </dd>
         </div>
       </div>
       
@@ -181,6 +222,67 @@ export default function RewardsPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Referrals Table */}
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">User Referrals</h2>
+        <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+          <table className="min-w-full divide-y divide-gray-300">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Referrer ID</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Referee ID</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Referral Code</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Reward Amount</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Referral Date</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Redeemed At</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Created At</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Updated At</th>
+                <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 bg-white">
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="py-4 pl-4 pr-3 text-center text-sm text-gray-500 sm:pl-6">
+                    Loading referrals...
+                  </td>
+                </tr>
+              ) : referrals.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="py-4 pl-4 pr-3 text-center text-sm text-gray-500 sm:pl-6">
+                    No referrals found
+                  </td>
+                </tr>
+              ) : (
+                referrals.map((referral) => (
+                  <tr key={referral.id}>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{referral.referrerId}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{referral.refereeId}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getReferralCodeBadgeStyle(referral.referralCode)}`}>
+                        {referral.referralCode}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{referral.rewardAmount}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{formatDate(referral.referralDate)}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      {referral.redeemedAt ? formatDate(referral.redeemedAt) : '-'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{formatDate(referral.createdAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{formatDate(referral.updatedAt)}</td>
+                    <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                      <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getReferralStatusBadgeStyle(referral.rewardStatus)}`}>
+                        {referral.rewardStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </AdminLayout>
   )
