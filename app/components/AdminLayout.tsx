@@ -22,6 +22,7 @@ import {
   XMarkIcon,
   StarIcon,
   ClockIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Station Management', href: '/admin/stations', icon: BuildingOfficeIcon },
   { name: 'Session Management', href: '/admin/sessions', icon: ClockIcon },
   { name: 'Transactions', href: '/admin/transactions', icon: CurrencyDollarIcon },
+  { name: 'Payment Management', href: '/admin/payments', icon: CreditCardIcon },
   { name: 'Reports & Feedback', href: '/admin/reports', icon: ChartBarIcon },
   { name: 'Content & Announcements', href: '/admin/content', icon: MegaphoneIcon },
   { name: 'Rewards & Referrals', href: '/admin/rewards', icon: GiftIcon },
