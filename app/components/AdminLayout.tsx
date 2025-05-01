@@ -21,11 +21,13 @@ import {
   Bars3Icon,
   XMarkIcon,
   StarIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
   { name: 'Station Management', href: '/admin/stations', icon: BuildingOfficeIcon },
+  { name: 'Session Management', href: '/admin/sessions', icon: ClockIcon },
   { name: 'Transactions', href: '/admin/transactions', icon: CurrencyDollarIcon },
   { name: 'Reports & Feedback', href: '/admin/reports', icon: ChartBarIcon },
   { name: 'Content & Announcements', href: '/admin/content', icon: MegaphoneIcon },
