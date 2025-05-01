@@ -388,7 +388,6 @@ export default function UsersPage() {
 
         {/* Users Table */}
         <div className="mt-8 flow-root">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Users</h2>
           {loading ? (
             <p>Loading users...</p>
           ) : error ? (
