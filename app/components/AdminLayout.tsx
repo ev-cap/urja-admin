@@ -24,6 +24,7 @@ import {
   ClockIcon,
   CreditCardIcon,
   CalendarIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
@@ -37,6 +38,7 @@ const navigation = [
   { name: 'Content & Announcements', href: '/admin/content', icon: MegaphoneIcon },
   { name: 'Rewards & Referrals', href: '/admin/rewards', icon: GiftIcon },
   { name: 'Logs & Analytics', href: '/admin/logs', icon: DocumentTextIcon },
+  { name: 'Activity Log', href: '/admin/activitylog', icon: ClipboardDocumentListIcon },
   { name: 'Community', href: '/admin/community', icon: UsersIcon },
   { name: 'RBAC', href: '/admin/rbac', icon: ShieldCheckIcon },
   { name: 'Notifications', href: '/admin/notifications', icon: BellIcon },
