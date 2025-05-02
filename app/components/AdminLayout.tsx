@@ -23,14 +23,16 @@ import {
   StarIcon,
   ClockIcon,
   CreditCardIcon,
+  CalendarIcon,
 } from '@heroicons/react/24/outline'
 
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-  { name: 'Station Management', href: '/admin/stations', icon: BuildingOfficeIcon },
-  { name: 'Session Management', href: '/admin/sessions', icon: ClockIcon },
+  { name: 'Stations', href: '/admin/stations', icon: BuildingOfficeIcon },
+  { name: 'Sessions', href: '/admin/sessions', icon: ClockIcon },
+  { name: 'Bookings', href: '/admin/bookings', icon: CalendarIcon },
   { name: 'Transactions', href: '/admin/transactions', icon: CurrencyDollarIcon },
-  { name: 'Payment Management', href: '/admin/payments', icon: CreditCardIcon },
+  { name: 'Payment', href: '/admin/payments', icon: CreditCardIcon },
   { name: 'Reports & Feedback', href: '/admin/reports', icon: ChartBarIcon },
   { name: 'Content & Announcements', href: '/admin/content', icon: MegaphoneIcon },
   { name: 'Rewards & Referrals', href: '/admin/rewards', icon: GiftIcon },
