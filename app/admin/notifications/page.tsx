@@ -1,16 +1,19 @@
 'use client';
 
-import { BellIcon, CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import AdminLayout from '../../components/AdminLayout';
 import { useEffect, useState } from 'react';
 
 interface Notification {
-  id: number;
-  type: string;
+  id: string;
+  user_id: string;
+  title: string;
   message: string;
-  readStatus: boolean;
-  timestamp: string;
-  userId: string;
+  type: string;
+  is_read: boolean;
+  priority: 'low' | 'medium' | 'high';
+  created_at: string;
+  read_at: string | null;
 }
 
 const getIcon = (type: string) => {
@@ -60,9 +63,9 @@ export default function NotificationsPage() {
   }, []);
 
   // Helper function to safely count notifications
-  const getUnreadCount = () => notifications.filter(n => !n.readStatus).length;
+  const getUnreadCount = () => notifications.filter(n => !n.is_read).length;
   const getTotalCount = () => notifications.length;
-  const getCriticalCount = () => notifications.filter(n => n.type === 'error').length;
+  const getCriticalCount = () => notifications.filter(n => n.priority === 'high').length;
 
   return (
     <AdminLayout>
@@ -97,7 +100,7 @@ export default function NotificationsPage() {
           </dd>
         </div>
         <div className="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-          <dt className="truncate text-sm font-medium text-gray-500">Critical Alerts</dt>
+          <dt className="truncate text-sm font-medium text-gray-500">High Priority Alerts</dt>
           <dd className="mt-1 text-3xl font-semibold tracking-tight text-gray-900">
             {getCriticalCount()}
           </dd>
@@ -116,20 +119,26 @@ export default function NotificationsPage() {
               <table className="min-w-full divide-y divide-gray-300">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                      ID
-                    </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Type
-                    </th>
-                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Message
+                      Title
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       User ID
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                      Timestamp
+                      Message
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Type
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Priority
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Created At
+                    </th>
+                    <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      Read At
                     </th>
                     <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
                       Status
@@ -138,23 +147,48 @@ export default function NotificationsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {notifications.map((notification) => (
-                    <tr key={notification.id} className={!notification.readStatus ? 'bg-blue-50' : ''}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {notification.id}
+                    <tr key={notification.id} className={!notification.is_read ? 'bg-blue-50' : ''}>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {notification.title}
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        <div className="flex items-center">
-                          {getIcon(notification.type)}
-                          <span className="ml-2">{notification.type}</span>
-                        </div>
+                        {notification.user_id}
                       </td>
                       <td className="px-3 py-4 text-sm text-gray-500">{notification.message}</td>
-                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{notification.userId}</td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {new Date(notification.timestamp).toLocaleString()}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          notification.type === 'system' 
+                            ? 'bg-blue-100 text-blue-800'
+                            : notification.type === 'error'
+                            ? 'bg-red-100 text-red-800'
+                            : notification.type === 'warning'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : notification.type === 'success'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {notification.type}
+                        </span>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                        {!notification.readStatus ? (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          notification.priority === 'high' 
+                            ? 'bg-red-100 text-red-800'
+                            : notification.priority === 'medium'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {notification.priority}
+                        </span>
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {new Date(notification.created_at).toLocaleString()}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {notification.read_at ? new Date(notification.read_at).toLocaleString() : '-'}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                        {!notification.is_read ? (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary text-white">
                             Unread
                           </span>
@@ -180,4 +214,4 @@ export default function NotificationsPage() {
       </div>
     </AdminLayout>
   );
-} 
+}
