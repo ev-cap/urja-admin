@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Fragment } from 'react';
+import { useEffect, useState, Fragment, useRef } from 'react';
 import AdminLayout from '../../components/AdminLayout'
 import {
   UserGroupIcon,
@@ -241,6 +241,7 @@ export default function UsersPage() {
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [expandedNotificationsId, setExpandedNotificationsId] = useState<number | null>(null);
   const [expandedPreferencesId, setExpandedPreferencesId] = useState<number | null>(null);
+  const isMounted = useRef(false);
 
   const toggleVehicleDetails = (userId: number) => {
     setExpandedUserId(currentId => currentId === userId ? null : userId);
@@ -264,6 +265,12 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     async function fetchUsers() {
       try {
         console.log('Making API request to:', 'http://127.0.0.1:4000/users');
@@ -307,6 +314,11 @@ export default function UsersPage() {
     }
 
     fetchUsers();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   return (

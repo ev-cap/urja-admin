@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 import { PlusIcon } from '@heroicons/react/24/outline';
 
@@ -38,6 +38,7 @@ export default function StationsPage() {
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(false);
 
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
@@ -65,6 +66,12 @@ export default function StationsPage() {
   };
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     const fetchStations = async () => {
       try {
         const response = await fetch('http://127.0.0.1:4000/stations');
@@ -89,6 +96,11 @@ export default function StationsPage() {
     };
 
     fetchStations();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const stats = getStatsData();

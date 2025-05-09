@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 
 interface Activity {
@@ -20,28 +20,23 @@ export default function ActivityLogPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isMounted = useRef(false)
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true
+      return
+    }
+
     const fetchActivities = async () => {
       try {
         const response = await fetch('http://127.0.0.1:4000/activitylogs')
         const data = await response.json()
         
-        // Enhanced console logging
-        console.group('Activity Logs API Response')
-        console.log('Raw Response:', data)
-        console.log('Response Type:', typeof data)
-        console.log('Is Array:', Array.isArray(data))
-        if (Array.isArray(data)) {
-          console.log('Number of Activities:', data.length)
-          console.table(data)
-        } else if (data && typeof data === 'object') {
-          console.log('Object Keys:', Object.keys(data))
-          const activitiesArray = Object.values(data).find(Array.isArray) || []
-          console.log('Extracted Activities:', activitiesArray)
-          console.table(activitiesArray)
-        }
-        console.groupEnd()
+
+        console.log('Activity Logs API Response:', data)
+        
         
         if (Array.isArray(data)) {
           setActivities(data)
@@ -60,6 +55,11 @@ export default function ActivityLogPage() {
     }
 
     fetchActivities()
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false
+    }
   }, [])
 
   const getStatusBadgeStyle = (status: string) => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 
 interface Payment {
@@ -25,8 +25,15 @@ interface Payment {
 export default function PaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+  const isMounted = useRef(false)
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     const fetchPayments = async () => {
       try {
         const response = await fetch('http://127.0.0.1:4000/payments')
@@ -40,6 +47,11 @@ export default function PaymentsPage() {
     }
 
     fetchPayments()
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, [])
 
   const getStatusBadgeStyle = (status: string) => {

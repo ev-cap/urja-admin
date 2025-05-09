@@ -1,7 +1,7 @@
 'use client'
 
 import AdminLayout from '../../components/AdminLayout'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 interface Review {
   id: string;
@@ -16,8 +16,15 @@ export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(false);
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     async function fetchReviews() {
       try {
         console.log('Making API request to:', 'http://127.0.0.1:4000/reviews');
@@ -61,6 +68,11 @@ export default function ReviewsPage() {
     }
 
     fetchReviews();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   return (

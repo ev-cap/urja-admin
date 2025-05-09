@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 
 interface Booking {
@@ -65,8 +65,15 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const isMounted = useRef(false)
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     const fetchBookings = async () => {
       try {
         const response = await fetch('http://127.0.0.1:4000/bookings')
@@ -92,6 +99,11 @@ export default function BookingsPage() {
     }
 
     fetchBookings()
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, [])
 
   const getStatusBadgeStyle = (status: string) => {

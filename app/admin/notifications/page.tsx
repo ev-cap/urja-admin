@@ -2,7 +2,7 @@
 
 import { CheckCircleIcon, ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import AdminLayout from '../../components/AdminLayout';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface Notification {
   id: string;
@@ -33,8 +33,15 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(false);
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     const fetchNotifications = async () => {
       try {
         const response = await fetch('http://127.0.0.1:4000/notifications');
@@ -60,6 +67,11 @@ export default function NotificationsPage() {
     };
 
     fetchNotifications();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   // Helper function to safely count notifications

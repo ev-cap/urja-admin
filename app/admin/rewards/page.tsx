@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import AdminLayout from '../../components/AdminLayout'
 
 interface Reward {
@@ -36,8 +36,15 @@ export default function RewardsPage() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMounted = useRef(false);
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     const fetchData = async () => {
       try {
         // Fetch rewards data
@@ -69,6 +76,11 @@ export default function RewardsPage() {
     };
 
     fetchData();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const formatDate = (dateString: string) => {

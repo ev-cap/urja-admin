@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/AdminLayout';
 
 interface Session {
@@ -31,8 +31,15 @@ export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMounted = useRef(false);
 
   useEffect(() => {
+    // Skip the first render
+    if (!isMounted.current) {
+      isMounted.current = true;
+      return;
+    }
+
     const fetchSessions = async () => {
       try {
         const response = await fetch('http://127.0.0.1:4000/sessions');
@@ -59,6 +66,11 @@ export default function SessionsPage() {
     };
 
     fetchSessions();
+
+    // Cleanup function
+    return () => {
+      isMounted.current = false;
+    };
   }, []);
 
   const getMongoId = (id: any): string => {
