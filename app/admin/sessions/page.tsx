@@ -42,7 +42,7 @@ export default function SessionsPage() {
 
     const fetchSessions = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:4000/sessions');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sessions`);
         const data = await response.json();
         console.log('Sessions API Response:', data);
         

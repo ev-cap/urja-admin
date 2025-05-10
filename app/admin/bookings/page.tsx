@@ -76,7 +76,7 @@ export default function BookingsPage() {
 
     const fetchBookings = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:4000/bookings')
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/bookings`)
         const data = await response.json()
         console.log('Fetched bookings:', data)
         

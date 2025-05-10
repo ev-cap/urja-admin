@@ -48,13 +48,13 @@ export default function RewardsPage() {
     const fetchData = async () => {
       try {
         // Fetch rewards data
-        const rewardsResponse = await fetch('http://127.0.0.1:4000/rewards');
+        const rewardsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/rewards`);
         const rewardsData = await rewardsResponse.json();
         console.log('Rewards API Response:', rewardsData);
         setRewards(Array.isArray(rewardsData) ? rewardsData : rewardsData.rewards ?? []);
 
         // Fetch referrals data
-        const referralsResponse = await fetch('http://127.0.0.1:4000/referrals');
+        const referralsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/referrals`);
         const referralsData = await referralsResponse.json();
         console.log('Referrals API Response:', referralsData);
         

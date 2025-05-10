@@ -273,9 +273,9 @@ export default function UsersPage() {
 
     async function fetchUsers() {
       try {
-        console.log('Making API request to:', 'http://127.0.0.1:4000/users');
+        console.log('Making API request to:', `${process.env.NEXT_PUBLIC_API_URL}/users`);
         
-        const res = await fetch('http://127.0.0.1:4000/users', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',

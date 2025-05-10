@@ -31,7 +31,7 @@ export default function ActivityLogPage() {
 
     const fetchActivities = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:4000/activitylogs')
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/activitylogs`)
         const data = await response.json()
         
 

@@ -27,9 +27,9 @@ export default function ReviewsPage() {
 
     async function fetchReviews() {
       try {
-        console.log('Making API request to:', 'http://127.0.0.1:4000/reviews');
+        console.log('Making API request to:', `${process.env.NEXT_PUBLIC_API_URL}/reviews`);
         
-        const res = await fetch('http://127.0.0.1:4000/reviews', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reviews`, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',

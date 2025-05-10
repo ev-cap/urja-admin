@@ -44,7 +44,7 @@ export default function NotificationsPage() {
 
     const fetchNotifications = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:4000/notifications');
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications`);
         const data = await response.json();
         console.log('Fetched notifications:', data);
         

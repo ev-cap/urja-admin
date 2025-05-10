@@ -36,7 +36,7 @@ export default function PaymentsPage() {
 
     const fetchPayments = async () => {
       try {
-        const response = await fetch('http://127.0.0.1:4000/payments')
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payments`)
         const data = await response.json()
         setPayments(Array.isArray(data) ? data : data.payments ?? [])
       } catch (error) {
