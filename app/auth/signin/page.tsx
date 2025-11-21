@@ -177,11 +177,30 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen w-full flex items-center justify-center relative p-4">
+      {/* Emerald Glow Background - Light mode */}
+      <div
+        className="fixed inset-0 z-0 dark:hidden"
+        style={{
+          backgroundImage: `
+            radial-gradient(125% 125% at 50% 10%, #ffffff 40%, #10b981 100%)
+          `,
+          backgroundSize: "100% 100%",
+        }}
+      />
+      
+      {/* Emerald Void - Dark mode */}
+      <div
+        className="fixed inset-0 z-0 hidden dark:block"
+        style={{
+          background: "radial-gradient(125% 125% at 50% 10%, #000000 40%, #072607 100%)",
+        }}
+      />
+      
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggle />
       </div>
-      <div className="w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/">
             <h1 className="text-3xl font-bold text-foreground mb-2 cursor-pointer hover:text-primary transition-colors">
