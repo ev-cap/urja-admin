@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Activity } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Loader } from "@/components/ui/loader";
 
 const recentActivity = [
   {
@@ -77,14 +78,7 @@ export default function DashboardPage() {
 
   // Show loading state while auth is being established
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading authentication...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   return (

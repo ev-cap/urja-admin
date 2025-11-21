@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Loader } from "@/components/ui/loader";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -22,14 +23,7 @@ export default function LandingPage() {
 
   // Show loading state while checking authentication
   if (!isLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   // Don't render landing page if signed in (redirect is happening)

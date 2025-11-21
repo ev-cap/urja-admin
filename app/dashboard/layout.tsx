@@ -10,7 +10,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" style={{ isolation: 'isolate' }}>
       {/* Navigation - Centered */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <DashboardNavigation />

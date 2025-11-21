@@ -147,6 +147,14 @@ body {
   font-family: var(--font-sans);
 }
 
+/* Ensure backdrop-filter works in all browsers */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .backdrop-blur-enabled {
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

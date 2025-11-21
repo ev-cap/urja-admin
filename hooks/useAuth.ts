@@ -14,10 +14,14 @@ export const useAuth = () => {
     isAuthenticated: authContext.isAuthenticated,
     isLoading: authContext.isLoading || !isUserLoaded,
     
-    // User info
+    // User info from Clerk
     userId: authContext.userId,
     sessionId: authContext.sessionId,
     user,
+    
+    // User info from backend
+    backendUserId: authContext.backendUserId,
+    userData: authContext.userData,
     
     // Phone number from Clerk
     phone: user?.primaryPhoneNumber?.phoneNumber || null,
@@ -27,6 +31,9 @@ export const useAuth = () => {
     
     // Sign out
     signOut: authContext.signOut,
+    
+    // Refetch user data
+    refetchUserData: authContext.refetchUserData,
     
     // Clerk instance for advanced usage
     clerk,

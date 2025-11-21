@@ -13,7 +13,9 @@ import {
   useTransform,
 } from "motion/react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { TbChevronUp } from "react-icons/tb";
+import Image from "next/image";
 
 export interface TOC_INTERFACE {
   name: string;
@@ -44,7 +46,12 @@ const DynamicScrollIslandTOC = ({
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState(_v);
+  const [mounted, setMounted] = useState(false);
   const sp = useMotionValue(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const c = ref?.current || window;
@@ -90,30 +97,40 @@ const DynamicScrollIslandTOC = ({
   const txt = <Text sp={sp} {...p} />;
   const items = <Items {...p} />;
 
+  const backdrop = mounted && open && createPortal(
+    <motion.div
+      role="button"
+      aria-label="Close"
+      onClick={() => setOpen(false)}
+      className="fixed inset-0 bg-black/40"
+      style={{ 
+        zIndex: 9999,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    />,
+    document.body
+  );
+
   return (
-    <MotionConfig transition={transition}>
+    <>
       <AnimatePresence initial={false}>
-        {open && (
-          <motion.div
-            role="button"
-            aria-label="Close"
-            onClick={() => setOpen(false)}
-            className="bg-d-bg/10 fixed inset-0 z-50 backdrop-blur-[4px]"
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(4px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-          />
-        )}
+        {backdrop}
       </AnimatePresence>
 
-      <div
-        className={cn(
-          "relative z-51 cursor-pointer select-none",
-          "[--height-opened:150px] [--width-opened:350px] [--width:220px]",
-          "text-white/80",
-          className,
-        )}
-      >
+      <MotionConfig transition={transition}>
+        <div
+          className={cn(
+            "relative cursor-pointer select-none",
+            "[--height-opened:150px] [--width-opened:350px] [--width:220px]",
+            "text-white/80",
+            className,
+          )}
+          style={{ zIndex: 10000 }}
+        >
         <motion.div
           role="button"
           aria-label="Open"
@@ -163,7 +180,8 @@ const DynamicScrollIslandTOC = ({
           </AnimatePresence>
         </div>
       </div>
-    </MotionConfig>
+      </MotionConfig>
+    </>
   );
 };
 
@@ -193,17 +211,33 @@ function Text({
   lPrefix,
 }: Props & { open: boolean; sp: MotionValue }) {
   return (
-    <div className="flex items-center justify-between w-full gap-3">
-      <div className="flex-1 flex justify-center">
-        <motion.p
-          layout="position"
-          layoutId={`${lPrefix}-toc-text`}
-          className="font-bold text-center"
-        >
-          {value?.name}
-        </motion.p>
-      </div>
-      <motion.div className="text-white/80">
+    <div className="relative flex items-center justify-center w-full">
+      {/* Logo - positioned absolutely on the left */}
+      <motion.div 
+        layout="position"
+        layoutId={`${lPrefix}-toc-logo`}
+        className="absolute left-0 flex items-center"
+      >
+        <Image 
+          src="/admin_rool_logo.png" 
+          alt="Admin Logo" 
+          width={24} 
+          height={24}
+          className="object-contain"
+        />
+      </motion.div>
+      
+      {/* Centered text */}
+      <motion.p
+        layout="position"
+        layoutId={`${lPrefix}-toc-text`}
+        className="font-bold text-center"
+      >
+        {value?.name}
+      </motion.p>
+      
+      {/* Chevron - positioned absolutely on the right */}
+      <motion.div className="absolute right-0 text-white/80">
         <motion.div
           layout="position"
           layoutId={`${lPrefix}-toc-chevron`}

@@ -5,10 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 const NAV_ITEMS: TOC_INTERFACE[] = [
   { name: "Dashboard", value: "/dashboard" },
-  { name: "Users", value: "/dashboard/users" },
-  { name: "Orders", value: "/dashboard/orders" },
-  { name: "Analytics", value: "/dashboard/analytics" },
-  { name: "Reports", value: "/dashboard/reports" },
+  { name: "API Explorer", value: "/dashboard/api-explorer" },
   { name: "Settings", value: "/dashboard/settings" },
 ];
 

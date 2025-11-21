@@ -1,19 +1,24 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
-import { useAuth, useSession } from '@clerk/nextjs';
+import { useAuth, useSession, useUser } from '@clerk/nextjs';
 import type { Session } from '@clerk/nextjs/server';
 import { setTokenGetter, registerApiBaseUrl, clearTokenCache } from '@/lib/auth/tokenManager';
 import { setupAxiosAuth } from '@/lib/auth/setupAxiosAuth';
 import { clerkConfig } from '@/lib/clerk/config';
+import { checkUserExistsAndGetUser } from '@/lib/services/userService';
+import type { User } from '@/types/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   userId: string | null;
   sessionId: string | null;
+  backendUserId: string | null;
+  userData: User | null;
   getToken: () => Promise<string | null>;
   signOut: () => Promise<void>;
+  refetchUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,11 +26,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { isSignedIn, userId, signOut: clerkSignOut } = useAuth();
   const { session, isLoaded: isSessionLoaded } = useSession();
+  const { user } = useUser();
   const [isLoading, setIsLoading] = useState(true);
+  const [backendUserId, setBackendUserId] = useState<string | null>(null);
+  const [userData, setUserData] = useState<User | null>(null);
   
   // Use refs to store current session state for access in async functions
   const sessionRef = useRef<typeof session>(null);
   const isSessionLoadedRef = useRef<boolean>(false);
+  const userDataFetchedRef = useRef<boolean>(false);
   
   // Update refs whenever session changes
   useEffect(() => {
@@ -98,12 +107,74 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   /**
+   * Fetch user data from backend after authentication
+   */
+  const fetchUserData = async () => {
+    if (!isSignedIn || !user?.primaryPhoneNumber?.phoneNumber) {
+      return;
+    }
+
+    // Prevent multiple simultaneous fetches
+    if (userDataFetchedRef.current) {
+      return;
+    }
+
+    try {
+      userDataFetchedRef.current = true;
+      
+      const phone = user.primaryPhoneNumber.phoneNumber;
+      console.log('[AuthContext] Fetching user data from backend for phone:', phone.substring(0, 5) + '***');
+      
+      // Get auth tokens
+      const jwtToken = await getToken();
+      const authTokens = {
+        jwtToken,
+        sessionId: session?.id || null,
+      };
+
+      // Call user-exists API which returns userId
+      const result = await checkUserExistsAndGetUser(phone, authTokens);
+      
+      if (result.exists && result.user) {
+        console.log('[AuthContext] User data fetched successfully:', {
+          userId: result.user.id,
+          email: result.user.email,
+          firstName: result.user.firstName,
+        });
+        
+        setBackendUserId(result.user.id);
+        setUserData(result.user);
+      } else {
+        console.warn('[AuthContext] User exists but no user data returned');
+      }
+    } catch (error) {
+      console.error('[AuthContext] Error fetching user data:', error);
+      // Don't throw - allow app to continue
+    } finally {
+      userDataFetchedRef.current = false;
+    }
+  };
+
+  /**
+   * Refetch user data (can be called manually)
+   */
+  const refetchUserData = async () => {
+    userDataFetchedRef.current = false;
+    setBackendUserId(null);
+    setUserData(null);
+    await fetchUserData();
+  };
+
+  /**
    * Sign out user and clear token cache
    */
   const signOut = async () => {
     try {
-      // Clear token cache before signing out
+      // Clear token cache and user data before signing out
       clearTokenCache();
+      setBackendUserId(null);
+      setUserData(null);
+      userDataFetchedRef.current = false;
       await clerkSignOut();
       console.log('[AuthContext] User signed out successfully');
     } catch (error) {
@@ -132,7 +203,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  // Handle authentication state changes
+  // Handle authentication state changes and fetch user data
   useEffect(() => {
     // Wait for both session and auth state to be loaded
     if (isSignedIn !== undefined && isSessionLoaded) {
@@ -144,16 +215,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         sessionId: session?.id,
         userId,
       });
+
+      // Fetch user data from backend if authenticated
+      if (isSignedIn && !backendUserId) {
+        fetchUserData();
+      }
     }
-  }, [isSignedIn, isSessionLoaded, session?.id, userId]);
+  }, [isSignedIn, isSessionLoaded, session?.id, userId, backendUserId]);
 
   const value: AuthContextType = {
     isAuthenticated: isSignedIn || false,
     isLoading,
     userId: userId || null,
     sessionId: session?.id || null,
+    backendUserId,
+    userData,
     getToken,
     signOut,
+    refetchUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

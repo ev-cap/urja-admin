@@ -1,99 +1,101 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader } from "@/components/ui/loader";
+import { useUserData } from "@/hooks/useUserData";
+import { User, Mail, Phone, UserCircle2 } from "lucide-react";
 
 export default function SettingsPage() {
+  const { userData, loading, error } = useUserData();
+
+  if (loading) {
+    return <Loader />;
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <p className="text-muted-foreground mt-1">
+            Manage your account information
+          </p>
+        </div>
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-foreground">Settings</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your account and application preferences
+          Manage your account information
         </p>
       </div>
 
-      {/* Settings Cards */}
-      <div className="space-y-4">
-        {/* Profile Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Settings</CardTitle>
-            <CardDescription>
-              Update your personal information
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" placeholder="John" defaultValue="Admin" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" placeholder="Doe" defaultValue="User" />
-              </div>
+      {/* Profile Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UserCircle2 className="h-5 w-5 text-primary" />
+            Profile Information
+          </CardTitle>
+          <CardDescription>
+            Your personal account details
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* First Name */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+              <User className="h-4 w-4" />
+              First Name
+            </Label>
+            <div className="text-foreground text-lg font-medium bg-muted/50 px-4 py-3 rounded-md border border-border">
+              {userData?.firstName || 'Not provided'}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="admin@urja.com" defaultValue="admin@urja.com" />
-            </div>
-            <Button>Save Changes</Button>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Password Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Password</CardTitle>
-            <CardDescription>
-              Change your password
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input id="currentPassword" type="password" />
+          {/* Last Name */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+              <User className="h-4 w-4" />
+              Last Name
+            </Label>
+            <div className="text-foreground text-lg font-medium bg-muted/50 px-4 py-3 rounded-md border border-border">
+              {userData?.lastName || 'Not provided'}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input id="newPassword" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input id="confirmPassword" type="password" />
-            </div>
-            <Button>Update Password</Button>
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Notifications</CardTitle>
-            <CardDescription>
-              Manage your notification preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Email Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive email updates</p>
-              </div>
-              <Button variant="outline" size="sm">Enable</Button>
+          {/* Email */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+              <Mail className="h-4 w-4" />
+              Email Address
+            </Label>
+            <div className="text-foreground text-lg font-medium bg-muted/50 px-4 py-3 rounded-md border border-border">
+              {userData?.email || 'Not provided'}
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Push Notifications</p>
-                <p className="text-sm text-muted-foreground">Receive push notifications</p>
-              </div>
-              <Button variant="outline" size="sm">Enable</Button>
+          </div>
+
+          {/* Phone Number */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-muted-foreground text-sm font-medium">
+              <Phone className="h-4 w-4" />
+              Phone Number
+            </Label>
+            <div className="text-foreground text-lg font-medium bg-muted/50 px-4 py-3 rounded-md border border-border">
+              {userData?.phone || 'Not provided'}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
