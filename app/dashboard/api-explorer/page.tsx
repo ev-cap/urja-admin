@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Loader } from "@/components/ui/loader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,9 +16,19 @@ import {
   Check,
   AlertCircle,
   Info,
-  Code,
+  Code2,
   BookOpen,
-  Zap
+  Zap,
+  X,
+  Plus,
+  Clock,
+  Database,
+  FileCode,
+  Sparkles,
+  Terminal,
+  Braces,
+  PlayCircle,
+  Settings2
 } from "lucide-react";
 import { 
   getEndpointsFromPermissions, 
@@ -32,13 +42,29 @@ import { getManagedToken } from "@/lib/auth/tokenManager";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-const METHOD_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
-  GET: { bg: "bg-blue-500/10", text: "text-blue-600", badge: "bg-blue-500" },
-  POST: { bg: "bg-green-500/10", text: "text-green-600", badge: "bg-green-500" },
-  PUT: { bg: "bg-orange-500/10", text: "text-orange-600", badge: "bg-orange-500" },
-  PATCH: { bg: "bg-purple-500/10", text: "text-purple-600", badge: "bg-purple-500" },
-  DELETE: { bg: "bg-red-500/10", text: "text-red-600", badge: "bg-red-500" },
+const METHOD_COLORS: Record<string, { bg: string; text: string; badge: string; hover: string }> = {
+  GET: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-500", hover: "hover:bg-blue-500/20" },
+  POST: { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", badge: "bg-green-500", hover: "hover:bg-green-500/20" },
+  PUT: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", badge: "bg-orange-500", hover: "hover:bg-orange-500/20" },
+  PATCH: { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", badge: "bg-purple-500", hover: "hover:bg-purple-500/20" },
+  DELETE: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", badge: "bg-red-500", hover: "hover:bg-red-500/20" },
 };
+
+interface RequestTab {
+  id: string;
+  endpoint: ParsedAPIEndpoint;
+  pathParams: Record<string, string>;
+  queryParams: Record<string, string>;
+  headers: Record<string, string>;
+  requestBody: string;
+  response: {
+    status: number;
+    data: any;
+    headers: any;
+    time: number;
+    size: number;
+  } | null;
+}
 
 export default function APIExplorerPage() {
   const { permissions, isLoading: authLoading, isAuthenticated } = useAuthContext();
@@ -48,23 +74,27 @@ export default function APIExplorerPage() {
   const [groupedEndpoints, setGroupedEndpoints] = useState<Record<string, ParsedAPIEndpoint[]>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [selectedEndpoint, setSelectedEndpoint] = useState<ParsedAPIEndpoint | null>(null);
-  const [requestBody, setRequestBody] = useState<string>("");
-  const [pathParams, setPathParams] = useState<Record<string, string>>({});
-  const [queryParams, setQueryParams] = useState<Record<string, string>>({});
-  const [response, setResponse] = useState<{
-    status: number;
-    data: any;
-    headers: any;
-  } | null>(null);
+  
+  // Tabs & Multi-request support
+  const [tabs, setTabs] = useState<RequestTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  
+  // UI State
+  const [activeView, setActiveView] = useState<'request' | 'code'>('request');
+  const [codeLanguage, setCodeLanguage] = useState<'curl' | 'javascript' | 'python'>('curl');
+  
+  // Request execution
   const [isExecuting, setIsExecuting] = useState(false);
-  const [copiedBody, setCopiedBody] = useState(false);
-  const [copiedResponse, setCopiedResponse] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  
   const [diagnostics, setDiagnostics] = useState<{
     totalRbac: number;
     matched: number;
     missing: number;
   } | null>(null);
+
+  // Active tab management
+  const activeTab = tabs.find(t => t.id === activeTabId);
 
   useEffect(() => {
     if (!authLoading) {
@@ -80,13 +110,11 @@ export default function APIExplorerPage() {
       }
 
       try {
-        // Count total RBAC endpoints
         const totalRbac = Object.values(permissions.methods).reduce(
           (sum, paths) => sum + (paths?.length || 0), 
           0
         );
 
-        // Parse endpoints from permissions
         const parsedEndpoints = getEndpointsFromPermissions(permissions.methods);
         const matched = parsedEndpoints.length;
         const missing = totalRbac - matched;
@@ -97,7 +125,6 @@ export default function APIExplorerPage() {
         const grouped = groupEndpointsByTag(parsedEndpoints);
         setGroupedEndpoints(grouped);
         
-        // Expand first group by default
         if (Object.keys(grouped).length > 0) {
           setExpandedGroups(new Set([Object.keys(grouped)[0]]));
         }
@@ -123,55 +150,80 @@ export default function APIExplorerPage() {
     setExpandedGroups(newExpanded);
   };
 
-  const selectEndpoint = (endpoint: ParsedAPIEndpoint) => {
-    setSelectedEndpoint(endpoint);
-    setResponse(null);
+  const createTab = useCallback((endpoint: ParsedAPIEndpoint) => {
+    const tabId = `${endpoint.method}-${endpoint.path}-${Date.now()}`;
     
     // Generate example request body
+    let requestBody = "";
     if (endpoint.requestBodySchema) {
       const example = endpoint.requestBodyExample || 
                      generateExampleFromSchema(endpoint.requestBodySchema);
-      setRequestBody(JSON.stringify(example, null, 2));
-    } else {
-      setRequestBody("");
+      requestBody = JSON.stringify(example, null, 2);
     }
 
     // Initialize path params
-    const initialPathParams: Record<string, string> = {};
+    const pathParams: Record<string, string> = {};
     if (endpoint.pathParams) {
       endpoint.pathParams.forEach(param => {
-        initialPathParams[param.name] = "";
+        pathParams[param.name] = "";
       });
     }
-    setPathParams(initialPathParams);
 
     // Initialize query params
-    const initialQueryParams: Record<string, string> = {};
+    const queryParams: Record<string, string> = {};
     if (endpoint.queryParams) {
       endpoint.queryParams.forEach(param => {
-        initialQueryParams[param.name] = "";
+        queryParams[param.name] = "";
       });
     }
-    setQueryParams(initialQueryParams);
+
+    const newTab: RequestTab = {
+      id: tabId,
+      endpoint,
+      pathParams,
+      queryParams,
+      headers: {},
+      requestBody,
+      response: null,
+    };
+
+    setTabs(prev => [...prev, newTab]);
+    setActiveTabId(tabId);
+  }, []);
+
+  const closeTab = (tabId: string) => {
+    setTabs(prev => {
+      const filtered = prev.filter(t => t.id !== tabId);
+      if (activeTabId === tabId && filtered.length > 0) {
+        setActiveTabId(filtered[filtered.length - 1].id);
+      } else if (filtered.length === 0) {
+        setActiveTabId(null);
+      }
+      return filtered;
+    });
+  };
+
+  const updateTab = (tabId: string, updates: Partial<RequestTab>) => {
+    setTabs(prev => prev.map(t => t.id === tabId ? { ...t, ...updates } : t));
   };
 
   const executeRequest = async () => {
-    if (!selectedEndpoint || !API_URL) return;
+    if (!activeTab || !API_URL) return;
 
     setIsExecuting(true);
-    setResponse(null);
+    const startTime = Date.now();
 
     try {
       // Build path with path params
-      let path = selectedEndpoint.path;
-      for (const [key, value] of Object.entries(pathParams)) {
+      let path = activeTab.endpoint.path;
+      for (const [key, value] of Object.entries(activeTab.pathParams)) {
         if (value) {
           path = path.replace(`{${key}}`, value);
         }
       }
 
       // Build query string
-      const queryString = Object.entries(queryParams)
+      const queryString = Object.entries(activeTab.queryParams)
         .filter(([_, value]) => value)
         .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
         .join('&');
@@ -184,6 +236,7 @@ export default function APIExplorerPage() {
       // Build headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        ...activeTab.headers,
       };
 
       if (token) {
@@ -193,9 +246,9 @@ export default function APIExplorerPage() {
 
       // Parse request body
       let data = undefined;
-      if (requestBody && selectedEndpoint.method !== 'GET' && selectedEndpoint.method !== 'DELETE') {
+      if (activeTab.requestBody && activeTab.endpoint.method !== 'GET' && activeTab.endpoint.method !== 'DELETE') {
         try {
-          data = JSON.parse(requestBody);
+          data = JSON.parse(activeTab.requestBody);
         } catch (err) {
           throw new Error('Invalid JSON in request body');
         }
@@ -203,48 +256,189 @@ export default function APIExplorerPage() {
 
       // Execute request
       const axiosConfig = {
-        method: selectedEndpoint.method.toLowerCase(),
+        method: activeTab.endpoint.method.toLowerCase(),
         url,
         headers,
         data,
       };
 
       const res = await axios(axiosConfig);
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
 
-      setResponse({
+      // Calculate response size
+      const responseSize = new Blob([JSON.stringify(res.data)]).size;
+
+      const response = {
         status: res.status,
         data: res.data,
         headers: res.headers,
-      });
+        time: responseTime,
+        size: responseSize,
+      };
+
+      updateTab(activeTab.id, { response });
+      
     } catch (err: any) {
       console.error('[APIExplorer] Request failed:', err);
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
       
+      let response;
       if (axios.isAxiosError(err)) {
-        setResponse({
+        const responseData = err.response?.data || { error: err.message };
+        response = {
           status: err.response?.status || 500,
-          data: err.response?.data || { error: err.message },
+          data: responseData,
           headers: err.response?.headers || {},
-        });
+          time: responseTime,
+          size: new Blob([JSON.stringify(responseData)]).size,
+        };
       } else {
-        setResponse({
+        const errorData = { error: err.message || 'Unknown error' };
+        response = {
           status: 500,
-          data: { error: err.message || 'Unknown error' },
+          data: errorData,
           headers: {},
-        });
+          time: responseTime,
+          size: new Blob([JSON.stringify(errorData)]).size,
+        };
       }
+
+      updateTab(activeTab.id, { response });
+      
     } finally {
       setIsExecuting(false);
     }
   };
 
-  const copyToClipboard = (text: string, type: 'body' | 'response') => {
+  const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
-    if (type === 'body') {
-      setCopiedBody(true);
-      setTimeout(() => setCopiedBody(false), 2000);
-    } else {
-      setCopiedResponse(true);
-      setTimeout(() => setCopiedResponse(false), 2000);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const generateCodeSnippet = useCallback(() => {
+    if (!activeTab || !API_URL) return '';
+
+    let path = activeTab.endpoint.path;
+    for (const [key, value] of Object.entries(activeTab.pathParams)) {
+      if (value) {
+        path = path.replace(`{${key}}`, value);
+      }
+    }
+
+    const queryString = Object.entries(activeTab.queryParams)
+      .filter(([_, value]) => value)
+      .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+      .join('&');
+
+    const url = `${API_URL}${path}${queryString ? '?' + queryString : ''}`;
+
+    if (codeLanguage === 'curl') {
+      let curl = `curl -X ${activeTab.endpoint.method} "${url}"`;
+      curl += ` \\\n  -H "Content-Type: application/json"`;
+      
+      Object.entries(activeTab.headers).forEach(([key, value]) => {
+        if (value) curl += ` \\\n  -H "${key}: ${value}"`;
+      });
+
+      if (activeTab.requestBody && activeTab.endpoint.method !== 'GET') {
+        curl += ` \\\n  -d '${activeTab.requestBody}'`;
+      }
+      return curl;
+    } else if (codeLanguage === 'javascript') {
+      let code = `const response = await fetch("${url}", {\n`;
+      code += `  method: "${activeTab.endpoint.method}",\n`;
+      code += `  headers: {\n`;
+      code += `    "Content-Type": "application/json",\n`;
+      
+      Object.entries(activeTab.headers).forEach(([key, value]) => {
+        if (value) code += `    "${key}": "${value}",\n`;
+      });
+      
+      code += `  },\n`;
+      
+      if (activeTab.requestBody && activeTab.endpoint.method !== 'GET') {
+        code += `  body: JSON.stringify(${activeTab.requestBody})\n`;
+      }
+      
+      code += `});\n\nconst data = await response.json();`;
+      return code;
+    } else { // python
+      let code = `import requests\n\n`;
+      code += `url = "${url}"\n`;
+      code += `headers = {\n`;
+      code += `    "Content-Type": "application/json",\n`;
+      
+      Object.entries(activeTab.headers).forEach(([key, value]) => {
+        if (value) code += `    "${key}": "${value}",\n`;
+      });
+      
+      code += `}\n\n`;
+      
+      if (activeTab.requestBody && activeTab.endpoint.method !== 'GET') {
+        code += `data = ${activeTab.requestBody}\n\n`;
+        code += `response = requests.${activeTab.endpoint.method.toLowerCase()}(url, headers=headers, json=data)`;
+      } else {
+        code += `response = requests.${activeTab.endpoint.method.toLowerCase()}(url, headers=headers)`;
+      }
+      
+      return code;
+    }
+  }, [activeTab, API_URL, codeLanguage]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  };
+
+  const formatTime = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(2)}s`;
+  };
+
+  // JSON Syntax Highlighter
+  const highlightJSON = (json: string) => {
+    try {
+      // Validate JSON first
+      JSON.parse(json);
+      
+      return json
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
+          let cls = 'text-orange-400'; // numbers
+          if (/^"/.test(match)) {
+            if (/:$/.test(match)) {
+              cls = 'text-blue-400 font-semibold'; // keys
+              return `<span class="${cls}">${match}</span>`;
+            } else {
+              cls = 'text-green-400'; // string values
+              return `<span class="${cls}">${match}</span>`;
+            }
+          } else if (/true|false/.test(match)) {
+            cls = 'text-purple-400 font-semibold'; // booleans
+          } else if (/null/.test(match)) {
+            cls = 'text-red-400 font-semibold'; // null
+          }
+          return `<span class="${cls}">${match}</span>`;
+        });
+    } catch (e) {
+      return json;
+    }
+  };
+
+  const formatJSON = (value: string) => {
+    try {
+      const parsed = JSON.parse(value);
+      return JSON.stringify(parsed, null, 2);
+    } catch (e) {
+      return value;
     }
   };
 
@@ -272,233 +466,374 @@ export default function APIExplorerPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-            <Zap className="h-8 w-8 text-primary" />
-            API Explorer
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Test and explore your allowed API endpoints
-          </p>
-        </div>
+    <>
+      {/* Custom Scrollbar Styles */}
+      <style jsx global>{`
+        /* Webkit browsers (Chrome, Safari, Edge) */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
         
-        {permissions && (
-          <Badge variant="outline" className="text-sm">
-            Role: {permissions.role}
-          </Badge>
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.3);
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+          border-radius: 4px;
+          border: 2px solid rgba(15, 23, 42, 0.3);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.8), rgba(168, 85, 247, 0.8));
+        }
+        
+        /* Firefox */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.3);
+        }
+
+        /* Thin scrollbar variant */
+        .custom-scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        
+        .custom-scrollbar-thin::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.2);
+          border-radius: 3px;
+        }
+        
+        .custom-scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(99, 102, 241, 0.4);
+          border-radius: 3px;
+        }
+        
+        .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.7);
+        }
+      `}</style>
+
+      <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 container mx-auto max-w-7xl rounded-lg shadow-md">
+        {/* Top Bar */}
+      <div className="flex-none border-b border-border bg-card/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Sparkles className="h-8 w-8 text-primary animate-pulse" />
+              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                API Explorer
+              </h1>
+              <p className="text-xs text-muted-foreground">Professional API Testing Suite</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            {permissions && (
+              <Badge variant="outline" className="text-sm gap-2">
+                <Settings2 className="h-3 w-3" />
+                {permissions.role}
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Diagnostics Banner */}
+        {diagnostics && diagnostics.missing > 0 && (
+          <div className="px-6 pb-3">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-border shadow-sm">
+              <Info className="h-4 w-4 text-orange-500 flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  {diagnostics.matched} of {diagnostics.totalRbac}
+                </span> endpoints documented • {diagnostics.missing} newer APIs pending documentation
+              </p>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Error State */}
-      {error && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-destructive">
-              <AlertCircle className="h-5 w-5" />
-              <p className="font-medium">{error}</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Diagnostics Info */}
-      {diagnostics && diagnostics.missing > 0 && (
-        <Card className="border-orange-500/50 bg-orange-500/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Info className="h-5 w-5 text-orange-500 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="font-medium text-orange-600 dark:text-orange-400 mb-1">
-                  Showing {diagnostics.matched} of {diagnostics.totalRbac} allowed endpoints
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {diagnostics.missing} newer APIs from your permissions are not yet documented in the OpenAPI spec. 
-                  The documented endpoints are fully functional.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Endpoints</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{endpoints.length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <Code className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{Object.keys(groupedEndpoints).length}</div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">User Role</CardTitle>
-            <Info className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{permissions?.role || 'Unknown'}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-12">
-        {/* Sidebar - Endpoint List */}
-        <Card className="lg:col-span-5">
-          <CardHeader>
-            <CardTitle>Endpoints</CardTitle>
-            <CardDescription>Browse and select API endpoints</CardDescription>
-            
+      {/* Main Layout */}
+      <div className="flex-1 flex overflow-hidden gap-2 p-2 pt-4 mt-2 bg-card rounded-lg border border-border shadow-md relative z-10">
+        {/* Sidebar */}
+        <div className="flex-none w-96 bg-transparent backdrop-blur-sm overflow-hidden">
+          <div className="h-full flex flex-col">
             {/* Search */}
-            <div className="relative pt-4">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search endpoints..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </CardHeader>
-          
-          <CardContent className="max-h-[600px] overflow-y-auto space-y-2">
-            {Object.keys(filteredGroups).length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Search className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p>No endpoints found</p>
+            <div className="flex-none p-4 border-b border-border space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Search endpoints..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-background/50"
+                />
               </div>
-            ) : (
-              Object.entries(filteredGroups).map(([group, eps]) => (
-                <div key={group} className="border rounded-lg overflow-hidden">
-                  {/* Group Header */}
-                  <button
-                    onClick={() => toggleGroup(group)}
-                    className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
-                  >
-                    <div className="flex items-center gap-2">
-                      {expandedGroups.has(group) ? (
-                        <ChevronDown className="h-4 w-4" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4" />
-                      )}
-                      <span className="font-medium">{group}</span>
-                      <Badge variant="secondary" className="text-xs">
+              
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="p-2.5 rounded-lg bg-blue-500/10 border border-border shadow-sm">
+                  <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{endpoints.length}</div>
+                  <div className="text-muted-foreground mt-0.5">Endpoints</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-purple-500/10 border border-border shadow-sm">
+                  <div className="text-xl font-bold text-purple-600 dark:text-purple-400">{Object.keys(groupedEndpoints).length}</div>
+                  <div className="text-muted-foreground mt-0.5">Groups</div>
+                </div>
+                <div className="p-2.5 rounded-lg bg-green-500/10 border border-border shadow-sm">
+                  <div className="text-xl font-bold text-green-600 dark:text-green-400">{tabs.length}</div>
+                  <div className="text-muted-foreground mt-0.5">Active</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Endpoint List */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+              {Object.keys(filteredGroups).length === 0 ? (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Search className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                  <p className="text-sm">No endpoints found</p>
+                </div>
+              ) : (
+                Object.entries(filteredGroups).map(([group, eps]) => (
+                  <div key={group} className="rounded-lg border border-border bg-card shadow-sm overflow-hidden">
+                    <button
+                      onClick={() => toggleGroup(group)}
+                      className="w-full flex items-center justify-between p-3 hover:bg-muted/50 transition-colors rounded-t-lg"
+                    >
+                      <div className="flex items-center gap-2">
+                        {expandedGroups.has(group) ? (
+                          <ChevronDown className="h-4 w-4 text-primary" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        <span className="font-semibold text-sm">{group}</span>
+                      </div>
+                      <Badge variant="secondary" className="text-xs h-6 px-2">
                         {eps.length}
                       </Badge>
-                    </div>
-                  </button>
-                  
-                  {/* Endpoints in Group */}
-                  {expandedGroups.has(group) && (
-                    <div className="border-t">
-                      {eps.map((ep, idx) => {
-                        const colors = METHOD_COLORS[ep.method] || METHOD_COLORS.GET;
-                        const isSelected = selectedEndpoint?.path === ep.path && 
-                                         selectedEndpoint?.method === ep.method;
-                        
-                        return (
-                          <button
-                            key={`${ep.method}-${ep.path}-${idx}`}
-                            onClick={() => selectEndpoint(ep)}
-                            className={cn(
-                              "w-full text-left p-3 border-b last:border-b-0 hover:bg-muted/50 transition-colors",
-                              isSelected && "bg-primary/5 border-l-4 border-l-primary"
-                            )}
-                          >
-                            <div className="flex items-start gap-2">
-                              <Badge className={cn("text-xs font-mono", colors.badge)}>
-                                {ep.method}
-                              </Badge>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-mono truncate">{ep.path}</p>
-                                {ep.summary && (
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {ep.summary}
-                                  </p>
+                    </button>
+                    
+                    {expandedGroups.has(group) && (
+                      <div className="border-t border-border">
+                        {eps.map((ep, idx) => {
+                          const colors = METHOD_COLORS[ep.method] || METHOD_COLORS.GET;
+                          const isInActiveTab = tabs.some(t => t.endpoint.path === ep.path && t.endpoint.method === ep.method);
+                          
+                          return (
+                            <button
+                              key={`${ep.method}-${ep.path}-${idx}`}
+                              onClick={() => createTab(ep)}
+                              className={cn(
+                                "w-full text-left p-3 border-b last:border-b-0 transition-all group relative first:rounded-t-lg last:rounded-b-lg",
+                                colors.hover,
+                                isInActiveTab && "bg-primary/5 border-l-2 border-l-primary"
+                              )}
+                            >
+                              <div className="flex items-start gap-3">
+                                <Badge
+                                  className={cn(
+                                    "text-xs font-bold flex-shrink-0",
+                                    colors.badge,
+                                    "w-[5rem] justify-center shadow-sm group-hover:shadow-md transition-shadow"
+                                  )}
+                                >
+                                  {ep.method}
+                                </Badge>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-mono break-words group-hover:text-primary transition-colors">{ep.path}</p>
+                                  {ep.summary && (
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {ep.summary}
+                                    </p>
+                                  )}
+                                </div>
+                                {isInActiveTab && (
+                                  <div className="flex-shrink-0">
+                                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Main Panel - Endpoint Details & Testing */}
-        <div className="lg:col-span-7 space-y-4">
-          {!selectedEndpoint ? (
-            <Card>
-              <CardContent className="py-24 text-center">
-                <Code className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-20" />
-                <p className="text-lg font-medium text-muted-foreground">
-                  Select an endpoint to get started
-                </p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Choose an API endpoint from the list to test it
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* Endpoint Details */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge className={METHOD_COLORS[selectedEndpoint.method].badge}>
-                          {selectedEndpoint.method}
-                        </Badge>
-                        <code className="text-sm font-mono">{selectedEndpoint.path}</code>
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                            </button>
+                          );
+                        })}
                       </div>
-                      {selectedEndpoint.summary && (
-                        <CardDescription>{selectedEndpoint.summary}</CardDescription>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-transparent">
+          {/* Tabs Bar */}
+          {tabs.length > 0 && (
+            <div className="flex-none border-b border-border bg-gradient-to-b from-muted/40 to-muted/20 overflow-x-auto custom-scrollbar-thin">
+              <div className="flex items-center gap-1 px-4 py-2 min-w-max">
+                {tabs.map(tab => {
+                  const colors = METHOD_COLORS[tab.endpoint.method];
+                  const isActive = activeTabId === tab.id;
+                  return (
+                    <div
+                      key={tab.id}
+                      className={cn(
+                        "group flex items-center gap-2 px-3 py-1.5 rounded-lg border-b-2 transition-all cursor-pointer relative",
+                        isActive
+                          ? "bg-background border-primary shadow-sm scale-105"
+                          : "bg-transparent border-transparent hover:bg-muted/50 hover:scale-102"
                       )}
+                      onClick={() => setActiveTabId(tab.id)}
+                    >
+                      {isActive && (
+                        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent rounded-t-lg" />
+                      )}
+                      <Badge className={cn("text-xs h-5 relative z-10 shadow-sm", colors.badge)}>
+                        {tab.endpoint.method}
+                      </Badge>
+                      <span className={cn(
+                        "text-sm font-mono max-w-[250px] truncate relative z-10",
+                        isActive && "font-semibold"
+                      )}>
+                        {tab.endpoint.path}
+                      </span>
+                      {tab.response && (
+                        <div className={cn(
+                          "h-1.5 w-1.5 rounded-full relative z-10",
+                          tab.response.status >= 200 && tab.response.status < 300
+                            ? "bg-green-500"
+                            : "bg-red-500"
+                        )} />
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          closeTab(tab.id);
+                        }}
+                        className={cn(
+                          "hover:bg-destructive/20 rounded p-0.5 transition-all relative z-10",
+                          isActive ? "opacity-70 hover:opacity-100" : "opacity-0 group-hover:opacity-70 group-hover:hover:opacity-100"
+                        )}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+                <div className="flex items-center gap-1 ml-2">
+                  <div className="h-6 w-px bg-border" />
+                  <Badge variant="outline" className="text-xs h-6">
+                    {tabs.length} {tabs.length === 1 ? 'tab' : 'tabs'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Request Panel */}
+          {!activeTab ? (
+            <div className="flex-1 flex items-center justify-center p-8">
+              <div className="text-center max-w-md space-y-4">
+                <div className="relative inline-block">
+                  <Terminal className="h-24 w-24 text-muted-foreground/20" />
+                  <Sparkles className="h-8 w-8 text-primary/40 absolute -top-2 -right-2 animate-pulse" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">Ready to Test APIs</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Select an endpoint from the sidebar to create a new request tab
+                  </p>
+                </div>
+                <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-4">
+                  <Zap className="h-4 w-4 text-yellow-500" />
+                  <span>Fast • Reliable • Secure</span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col overflow-hidden">
+              {/* View Toggle & Request Info */}
+              <div className="flex-none border-b border-border bg-card/50 backdrop-blur-sm rounded-t-lg">
+                <div className="flex items-center justify-between px-6 py-3">
+                  <div className="flex items-center gap-3">
+                    <Badge className={METHOD_COLORS[activeTab.endpoint.method].badge}>
+                      {activeTab.endpoint.method}
+                    </Badge>
+                    <code className="text-sm font-mono text-muted-foreground">
+                      {activeTab.endpoint.path}
+                    </code>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant={activeView === 'request' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setActiveView('request')}
+                      className="gap-2"
+                    >
+                      <Send className="h-4 w-4" />
+                      Request
+                    </Button>
+                    <Button
+                      variant={activeView === 'code' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setActiveView('code')}
+                      className="gap-2"
+                    >
+                      <FileCode className="h-4 w-4" />
+                      Code
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Loading Overlay */}
+              {isExecuting && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                  <div className="text-center space-y-4">
+                    <div className="relative">
+                      <div className="h-16 w-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" />
+                      <Zap className="h-6 w-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-semibold">Executing Request</p>
+                      <p className="text-sm text-muted-foreground">Please wait...</p>
                     </div>
                   </div>
-                </CardHeader>
+                </div>
+              )}
 
-                <CardContent className="space-y-4">
+              {/* Request Builder */}
+              {activeView === 'request' ? (
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
                   {/* Path Parameters */}
-                  {selectedEndpoint.pathParams && selectedEndpoint.pathParams.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Path Parameters</h4>
+                  {activeTab.endpoint.pathParams && activeTab.endpoint.pathParams.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Braces className="h-4 w-4 text-primary" />
+                        Path Parameters
+                      </h3>
                       <div className="space-y-2">
-                        {selectedEndpoint.pathParams.map(param => (
-                          <div key={param.name}>
-                            <label className="text-xs text-muted-foreground flex items-center gap-1">
+                        {activeTab.endpoint.pathParams.map(param => (
+                          <div key={param.name} className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                               {param.name}
                               {param.required && <span className="text-destructive">*</span>}
                             </label>
                             <Input
                               placeholder={param.description || param.name}
-                              value={pathParams[param.name] || ""}
-                              onChange={(e) => setPathParams({
-                                ...pathParams,
-                                [param.name]: e.target.value
+                              value={activeTab.pathParams[param.name] || ""}
+                              onChange={(e) => updateTab(activeTab.id, {
+                                pathParams: { ...activeTab.pathParams, [param.name]: e.target.value }
                               })}
-                              className="mt-1"
+                              className="bg-background/50 font-mono text-sm"
                             />
                           </div>
                         ))}
@@ -507,24 +842,26 @@ export default function APIExplorerPage() {
                   )}
 
                   {/* Query Parameters */}
-                  {selectedEndpoint.queryParams && selectedEndpoint.queryParams.length > 0 && (
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Query Parameters</h4>
+                  {activeTab.endpoint.queryParams && activeTab.endpoint.queryParams.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <Search className="h-4 w-4 text-primary" />
+                        Query Parameters
+                      </h3>
                       <div className="space-y-2">
-                        {selectedEndpoint.queryParams.map(param => (
-                          <div key={param.name}>
-                            <label className="text-xs text-muted-foreground flex items-center gap-1">
+                        {activeTab.endpoint.queryParams.map(param => (
+                          <div key={param.name} className="space-y-1.5">
+                            <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
                               {param.name}
                               {param.required && <span className="text-destructive">*</span>}
                             </label>
                             <Input
                               placeholder={param.description || param.name}
-                              value={queryParams[param.name] || ""}
-                              onChange={(e) => setQueryParams({
-                                ...queryParams,
-                                [param.name]: e.target.value
+                              value={activeTab.queryParams[param.name] || ""}
+                              onChange={(e) => updateTab(activeTab.id, {
+                                queryParams: { ...activeTab.queryParams, [param.name]: e.target.value }
                               })}
-                              className="mt-1"
+                              className="bg-background/50 font-mono text-sm"
                             />
                           </div>
                         ))}
@@ -533,89 +870,265 @@ export default function APIExplorerPage() {
                   )}
 
                   {/* Request Body */}
-                  {requestBody && (
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="text-sm font-medium">Request Body</h4>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => copyToClipboard(requestBody, 'body')}
-                        >
-                          {copiedBody ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
+                  {activeTab.requestBody && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <Code2 className="h-4 w-4 text-primary" />
+                          Request Body
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateTab(activeTab.id, { requestBody: formatJSON(activeTab.requestBody) })}
+                            className="h-7 gap-2"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            <span className="text-xs">Format</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(activeTab.requestBody, 'body')}
+                            className="h-7 gap-2"
+                          >
+                            {copied === 'body' ? (
+                              <>
+                                <Check className="h-3 w-3 text-green-500" />
+                                <span className="text-xs">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                <span className="text-xs">Copy</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                      <textarea
-                        value={requestBody}
-                        onChange={(e) => setRequestBody(e.target.value)}
-                        className="w-full h-48 p-3 font-mono text-sm border rounded-md bg-muted/30 resize-none"
-                      />
+                      <div className="relative rounded-lg border border-border bg-slate-950 overflow-hidden shadow-sm">
+                        {/* Line Numbers */}
+                        <div className="absolute left-0 top-0 bottom-0 w-12 bg-slate-900/50 border-r border-border p-4 text-right select-none overflow-hidden z-10 custom-scrollbar-thin rounded-l-lg">
+                          {activeTab.requestBody.split('\n').map((_, i) => (
+                            <div key={i} className="font-mono text-xs text-slate-500 leading-6">
+                              {i + 1}
+                            </div>
+                          ))}
+                        </div>
+                        <div className="relative h-64">
+                          {/* Editor */}
+                          <textarea
+                            value={activeTab.requestBody}
+                            onChange={(e) => updateTab(activeTab.id, { requestBody: e.target.value })}
+                            placeholder='{"key": "value"}'
+                            className="relative w-full h-full pl-16 pr-4 py-4 font-mono text-sm bg-transparent text-slate-200 placeholder:text-slate-600 caret-white resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 leading-6 selection:bg-blue-500/30 z-20 custom-scrollbar"
+                            spellCheck={false}
+                            style={{ caretColor: 'white' }}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Info className="h-3 w-3" />
+                        Press Format to beautify JSON • Supports auto-completion
+                      </p>
                     </div>
                   )}
 
                   {/* Execute Button */}
-                  <Button
-                    onClick={executeRequest}
-                    disabled={isExecuting}
-                    className="w-full"
-                  >
-                    {isExecuting ? (
-                      <>
-                        <span className="animate-spin mr-2">⏳</span>
-                        Executing...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="h-4 w-4 mr-2" />
-                        Execute Request
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+                  <div className="pt-4">
+                    <Button
+                      onClick={executeRequest}
+                      disabled={isExecuting}
+                      size="lg"
+                      className="w-full gap-3 text-base h-12 font-semibold bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-200 relative overflow-hidden group"
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+                      {isExecuting ? (
+                        <>
+                          <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Executing Request...
+                        </>
+                      ) : (
+                        <>
+                          <PlayCircle className="h-5 w-5 group-hover:scale-110 transition-transform" />
+                          Execute Request
+                        </>
+                      )}
+                    </Button>
+                  </div>
 
-              {/* Response */}
-              {response && (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2">
-                        Response
-                        <Badge
-                          variant={response.status >= 200 && response.status < 300 ? "default" : "destructive"}
-                        >
-                          {response.status}
-                        </Badge>
-                      </CardTitle>
+                  {/* Response Section */}
+                  {activeTab.response && (
+                    <div className="space-y-3 pt-6 border-t border-border animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-semibold flex items-center gap-2">
+                          <Database className="h-4 w-4 text-primary" />
+                          Response
+                        </h3>
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          <Badge
+                            variant={activeTab.response.status >= 200 && activeTab.response.status < 300 ? "default" : "destructive"}
+                            className="gap-1 font-semibold animate-in zoom-in duration-300"
+                          >
+                            {activeTab.response.status}
+                          </Badge>
+                          <Badge variant="outline" className="gap-1 animate-in slide-in-from-right-2 duration-300 delay-75">
+                            <Clock className="h-3 w-3" />
+                            {formatTime(activeTab.response.time)}
+                          </Badge>
+                          <Badge variant="outline" className="gap-1 animate-in slide-in-from-right-2 duration-300 delay-100">
+                            <Database className="h-3 w-3" />
+                            {formatBytes(activeTab.response.size)}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard(JSON.stringify(activeTab.response?.data, null, 2), 'response')}
+                            className="h-7 gap-2 animate-in slide-in-from-right-2 duration-300 delay-150"
+                          >
+                            {copied === 'response' ? (
+                              <>
+                                <Check className="h-3 w-3 text-green-500" />
+                                <span className="text-xs">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                <span className="text-xs">Copy</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="relative rounded-lg border border-border bg-slate-950 overflow-hidden shadow-sm">
+                        {/* Line Numbers */}
+                        <div className="absolute left-0 top-0 bottom-0 w-12 bg-slate-900/50 border-r border-border p-4 text-right select-none overflow-hidden custom-scrollbar-thin rounded-l-lg">
+                          {JSON.stringify(activeTab.response.data, null, 2).split('\n').map((_, i) => (
+                            <div key={i} className="font-mono text-xs text-slate-500 leading-6">
+                              {i + 1}
+                            </div>
+                          ))}
+                        </div>
+                        {/* Syntax Highlighted Response */}
+                        <pre className="w-full max-h-96 pl-16 pr-4 py-4 font-mono text-sm text-slate-200 overflow-auto leading-6 custom-scrollbar">
+                          <code 
+                            dangerouslySetInnerHTML={{ 
+                              __html: highlightJSON(JSON.stringify(activeTab.response.data, null, 2))
+                            }}
+                          />
+                        </pre>
+                      </div>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className={cn(
+                          "flex items-center gap-1 font-medium",
+                          activeTab.response.status >= 200 && activeTab.response.status < 300
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-red-600 dark:text-red-400"
+                        )}>
+                          {activeTab.response.status >= 200 && activeTab.response.status < 300 ? (
+                            <>
+                              <Check className="h-3 w-3" />
+                              Response received successfully
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="h-3 w-3" />
+                              Request failed
+                            </>
+                          )}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {new Date().toLocaleTimeString()}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Code Generation View */
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <FileCode className="h-4 w-4 text-primary" />
+                      Generate Code Snippet
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={codeLanguage === 'curl' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCodeLanguage('curl')}
+                        className="gap-2"
+                      >
+                        <Terminal className="h-3 w-3" />
+                        cURL
+                      </Button>
+                      <Button
+                        variant={codeLanguage === 'javascript' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCodeLanguage('javascript')}
+                      >
+                        JavaScript
+                      </Button>
+                      <Button
+                        variant={codeLanguage === 'python' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setCodeLanguage('python')}
+                      >
+                        Python
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="relative rounded-lg border border-border bg-slate-950 overflow-hidden shadow-sm">
+                    <div className="flex items-center justify-between px-4 py-2 bg-slate-900/50 border-b border-border rounded-t-lg">
+                      <span className="text-xs font-medium text-slate-400">
+                        {codeLanguage === 'curl' ? 'Shell' : codeLanguage === 'javascript' ? 'JavaScript' : 'Python'}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => copyToClipboard(JSON.stringify(response.data, null, 2), 'response')}
+                        onClick={() => copyToClipboard(generateCodeSnippet(), 'code')}
+                        className="h-6 gap-2 hover:bg-slate-800"
                       >
-                        {copiedResponse ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                        {copied === 'code' ? (
+                          <>
+                            <Check className="h-3 w-3 text-green-500" />
+                            <span className="text-xs text-green-500">Copied</span>
+                          </>
                         ) : (
-                          <Copy className="h-4 w-4" />
+                          <>
+                            <Copy className="h-3 w-3 text-slate-400" />
+                            <span className="text-xs text-slate-400">Copy</span>
+                          </>
                         )}
                       </Button>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <pre className="w-full max-h-96 p-3 font-mono text-sm border rounded-md bg-muted/30 overflow-auto">
-                      {JSON.stringify(response.data, null, 2)}
+                    {/* Line Numbers */}
+                    <div className="absolute left-0 top-10 bottom-0 w-12 bg-slate-900/50 border-r border-border p-4 text-right select-none overflow-hidden custom-scrollbar-thin rounded-bl-lg">
+                      {generateCodeSnippet().split('\n').map((_, i) => (
+                        <div key={i} className="font-mono text-xs text-slate-500 leading-6">
+                          {i + 1}
+                        </div>
+                      ))}
+                    </div>
+                    <pre className="w-full min-h-[300px] pl-16 pr-4 py-4 font-mono text-sm text-slate-200 overflow-auto leading-6 custom-scrollbar">
+                      {generateCodeSnippet()}
                     </pre>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    Copy this code snippet to use in your application
+                  </p>
+                </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
-    </div>
+
+      </div>
+    </>
   );
 }
 

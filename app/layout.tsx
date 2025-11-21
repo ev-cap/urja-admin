@@ -5,8 +5,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { AuthProvider } from "@/contexts/AuthContext";
 
 export const metadata: Metadata = {
-  title: "Urja Admin Dashboard",
-  description: "Admin dashboard for Urja",
+  title: "ROOL Admin Dashboard",
+  description: "Admin dashboard for ROOL",
 };
 
 export default function RootLayout({
