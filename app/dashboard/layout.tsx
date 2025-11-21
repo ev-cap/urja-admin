@@ -1,6 +1,7 @@
 "use client";
 
 import { DashboardNavigation } from "@/components/dashboard-navigation";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function DashboardLayout({
   children,
@@ -10,8 +11,11 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       {/* Navigation Island */}
-      <div className="fixed top-6 left-0 right-0 z-50 flex justify-center">
+      <div className="fixed top-6 left-0 right-0 z-50 flex justify-center items-center gap-3">
         <DashboardNavigation />
+        <div className="bg-black rounded-full p-1">
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Main Content */}
