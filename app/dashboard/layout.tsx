@@ -3,14 +3,43 @@
 import { DashboardNavigation } from "@/components/dashboard-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
+import Image from "next/image";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentTheme = mounted ? (resolvedTheme || theme) : "light";
+  const logoSrc = currentTheme === "dark" 
+    ? "/admin_rool_text_white_logo.png" 
+    : "/admin_rool_text_black_logo.png";
+
   return (
     <div className="min-h-screen bg-background" style={{ isolation: 'isolate' }}>
+      {/* Logo - Top Left */}
+      <div className="fixed top-6 left-6 z-50">
+        {mounted && (
+          <Image
+            src={logoSrc}
+            alt="Admin Rool"
+            width={110}
+            height={32}
+            priority
+            className="object-contain"
+          />
+        )}
+      </div>
+
       {/* Navigation - Centered */}
       <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <DashboardNavigation />
