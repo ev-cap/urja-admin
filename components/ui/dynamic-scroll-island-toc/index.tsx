@@ -178,7 +178,7 @@ function Items({ setValue, data }: Props) {
           key={i.name}
           onClick={() => setValue?.(i)}
           aria-label={i.name}
-          className="cursor-pointer text-left font-semibold transition-all group-hover:opacity-40 hover:opacity-100!"
+          className="cursor-pointer text-center font-semibold transition-all group-hover:opacity-40 hover:opacity-100!"
         >
           {i.name}
         </button>
@@ -194,13 +194,15 @@ function Text({
 }: Props & { open: boolean; sp: MotionValue }) {
   return (
     <div className="flex items-center justify-between w-full gap-3">
-      <motion.p
-        layout="position"
-        layoutId={`${lPrefix}-toc-text`}
-        className="font-bold"
-      >
-        {value?.name}
-      </motion.p>
+      <div className="flex-1 flex justify-center">
+        <motion.p
+          layout="position"
+          layoutId={`${lPrefix}-toc-text`}
+          className="font-bold text-center"
+        >
+          {value?.name}
+        </motion.p>
+      </div>
       <motion.div className="text-white/80">
         <motion.div
           layout="position"

@@ -11,9 +11,13 @@ export default function DashboardLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation Island */}
-      <div className="fixed top-6 left-0 right-0 z-50 flex justify-center items-center gap-3">
+      {/* Navigation - Centered */}
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50">
         <DashboardNavigation />
+      </div>
+
+      {/* User Controls - Top Right */}
+      <div className="fixed top-6 right-6 z-50 flex items-center gap-3">
         <div className="bg-black/80 dark:bg-white/10 backdrop-blur-md rounded-full p-1">
           <ThemeToggle className="text-white" />
         </div>

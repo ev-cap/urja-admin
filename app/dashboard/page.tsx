@@ -1,36 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingCart, DollarSign, TrendingUp, Activity } from "lucide-react";
-
-const stats = [
-  {
-    title: "Total Users",
-    value: "2,543",
-    change: "+12.5%",
-    icon: Users,
-    color: "text-chart-1",
-  },
-  {
-    title: "Total Orders",
-    value: "1,234",
-    change: "+8.2%",
-    icon: ShoppingCart,
-    color: "text-chart-2",
-  },
-  {
-    title: "Revenue",
-    value: "$45,231",
-    change: "+23.1%",
-    icon: DollarSign,
-    color: "text-chart-3",
-  },
-  {
-    title: "Growth",
-    value: "18.3%",
-    change: "+4.3%",
-    icon: TrendingUp,
-    color: "text-chart-4",
-  },
-];
+import { useAuth } from "@/hooks/useAuth";
 
 const recentActivity = [
   {
@@ -56,6 +29,64 @@ const recentActivity = [
 ];
 
 export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  useEffect(() => {
+    // Check authentication
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        console.warn('[Dashboard] User not authenticated');
+        setError('Please sign in to view dashboard');
+      }
+      setLoading(false);
+    }
+  }, [isAuthenticated, authLoading]);
+
+  const stats = [
+    {
+      title: "Total Users",
+      value: "2,847",
+      change: "+12.5%",
+      icon: Users,
+      color: "text-chart-1",
+    },
+    {
+      title: "Total Active Users",
+      value: "1,892",
+      change: "+8.2%",
+      icon: ShoppingCart,
+      color: "text-chart-2",
+    },
+    {
+      title: "Revenue",
+      value: "$45,231",
+      change: "+23.1%",
+      icon: DollarSign,
+      color: "text-chart-3",
+    },
+    {
+      title: "Growth",
+      value: "18.3%",
+      change: "+4.3%",
+      icon: TrendingUp,
+      color: "text-chart-4",
+    },
+  ];
+
+  // Show loading state while auth is being established
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -65,6 +96,18 @@ export default function DashboardPage() {
           Welcome back! Here's what's happening with your platform.
         </p>
       </div>
+
+      {/* Error State */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
+          <p className="text-sm font-medium">{error}</p>
+          {!isAuthenticated && (
+            <p className="text-xs mt-2">
+              Please <a href="/auth/signin" className="underline">sign in</a> to access the dashboard.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

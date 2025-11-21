@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { useAuth, useSession } from '@clerk/nextjs';
-import { setTokenGetter, registerApiBaseUrl } from '@/lib/auth/tokenManager';
+import type { Session } from '@clerk/nextjs/server';
+import { setTokenGetter, registerApiBaseUrl, clearTokenCache } from '@/lib/auth/tokenManager';
 import { setupAxiosAuth } from '@/lib/auth/setupAxiosAuth';
 import { clerkConfig } from '@/lib/clerk/config';
 
@@ -19,34 +20,77 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { isSignedIn, userId, signOut: clerkSignOut } = useAuth();
-  const { session } = useSession();
+  const { session, isLoaded: isSessionLoaded } = useSession();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Use refs to store current session state for access in async functions
+  const sessionRef = useRef<typeof session>(null);
+  const isSessionLoadedRef = useRef<boolean>(false);
+  
+  // Update refs whenever session changes
+  useEffect(() => {
+    sessionRef.current = session;
+    isSessionLoadedRef.current = isSessionLoaded;
+  }, [session, isSessionLoaded]);
 
   /**
    * Get JWT token from Clerk with the custom template
+   * This function is called by the token manager when cache is expired
    */
   const getToken = async (): Promise<string | null> => {
     try {
-      if (!session) {
-        console.log('[AuthContext] No active session');
-        return null;
-      }
-
-      // Get token with custom JWT template
-      const token = await session.getToken({ template: clerkConfig.jwtTemplateName });
+      // Retry logic: wait for session to be available
+      const maxRetries = 15;
+      const retryDelay = 300; // 300ms between retries
       
-      if (!token) {
-        console.warn('[AuthContext] Token is null from Clerk session');
-        return null;
+      for (let i = 0; i < maxRetries; i++) {
+        // Access current values from refs
+        const currentSession = sessionRef.current;
+        const currentIsLoaded = isSessionLoadedRef.current;
+        
+        if (currentIsLoaded && currentSession) {
+          console.log('[AuthContext] Session is ready', {
+            sessionId: currentSession.id,
+            attemptNumber: i + 1,
+          });
+          
+          // Get token with custom JWT template
+          const token = await currentSession.getToken({ template: clerkConfig.jwtTemplateName });
+          
+          if (!token) {
+            console.warn('[AuthContext] Token is null from Clerk session');
+            return null;
+          }
+
+          console.log('[AuthContext] Fresh token retrieved from Clerk', {
+            template: clerkConfig.jwtTemplateName,
+            tokenLength: token.length,
+            sessionId: currentSession.id,
+          });
+
+          return token;
+        }
+        
+        if (i === 0 || i % 3 === 0) {
+          console.log('[AuthContext] Waiting for session to load...', {
+            attempt: i + 1,
+            maxRetries,
+            isSessionLoaded: currentIsLoaded,
+            hasSession: !!currentSession,
+          });
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
 
-      console.log('[AuthContext] Token retrieved successfully', {
-        template: clerkConfig.jwtTemplateName,
-        tokenLength: token.length,
-        sessionId: session.id,
+      // After all retries
+      console.error('[AuthContext] No active session after retries', {
+        isSignedIn,
+        isSessionLoaded: isSessionLoadedRef.current,
+        hasSession: !!sessionRef.current,
+        retriesAttempted: maxRetries,
       });
-
-      return token;
+      return null;
     } catch (error) {
       console.error('[AuthContext] Error getting token:', error);
       return null;
@@ -54,11 +98,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   /**
-   * Sign out user
+   * Sign out user and clear token cache
    */
   const signOut = async () => {
     try {
+      // Clear token cache before signing out
+      clearTokenCache();
       await clerkSignOut();
+      console.log('[AuthContext] User signed out successfully');
     } catch (error) {
       console.error('[AuthContext] Error signing out:', error);
       throw error;
@@ -87,10 +134,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Handle authentication state changes
   useEffect(() => {
-    if (isSignedIn !== undefined) {
+    // Wait for both session and auth state to be loaded
+    if (isSignedIn !== undefined && isSessionLoaded) {
       setIsLoading(false);
+      
+      console.log('[AuthContext] Auth state ready', {
+        isSignedIn,
+        hasSession: !!session,
+        sessionId: session?.id,
+        userId,
+      });
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, isSessionLoaded, session?.id, userId]);
 
   const value: AuthContextType = {
     isAuthenticated: isSignedIn || false,
