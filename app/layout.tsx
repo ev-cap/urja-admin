@@ -7,6 +7,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 export const metadata: Metadata = {
   title: "ROOL Admin Dashboard",
   description: "Admin dashboard for ROOL",
+  icons: {
+    icon: "/admin_rool_white_logo.png",
+    shortcut: "/admin_rool_white_logo.png",
+    apple: "/admin_rool_white_logo.png",
+  },
 };
 
 export default function RootLayout({
