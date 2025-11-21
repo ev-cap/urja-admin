@@ -2,6 +2,7 @@
 
 import { DashboardNavigation } from "@/components/dashboard-navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/user-menu";
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default function DashboardLayout({
         <div className="bg-black rounded-full p-1">
           <ThemeToggle />
         </div>
+        <UserMenu />
       </div>
 
       {/* Main Content */}
