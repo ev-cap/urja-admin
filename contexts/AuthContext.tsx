@@ -7,6 +7,7 @@ import { setTokenGetter, registerApiBaseUrl, clearTokenCache } from '@/lib/auth/
 import { setupAxiosAuth } from '@/lib/auth/setupAxiosAuth';
 import { clerkConfig } from '@/lib/clerk/config';
 import { checkUserExistsAndGetUser } from '@/lib/services/userService';
+import { getCachedPermissionsByRole, type RBACPermissions } from '@/lib/services/rbacService';
 import type { User } from '@/types/auth';
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   sessionId: string | null;
   backendUserId: string | null;
   userData: User | null;
+  permissions: RBACPermissions | null;
   getToken: () => Promise<string | null>;
   signOut: () => Promise<void>;
   refetchUserData: () => Promise<void>;
@@ -30,11 +32,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [backendUserId, setBackendUserId] = useState<string | null>(null);
   const [userData, setUserData] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<RBACPermissions | null>(null);
   
   // Use refs to store current session state for access in async functions
   const sessionRef = useRef<typeof session>(null);
   const isSessionLoadedRef = useRef<boolean>(false);
   const userDataFetchedRef = useRef<boolean>(false);
+  const permissionsFetchedRef = useRef<boolean>(false);
   
   // Update refs whenever session changes
   useEffect(() => {
@@ -107,6 +111,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   /**
+   * Fetch RBAC permissions based on user role
+   */
+  const fetchPermissions = async (userRole: string) => {
+    // Prevent multiple simultaneous fetches
+    if (permissionsFetchedRef.current) {
+      return;
+    }
+
+    try {
+      permissionsFetchedRef.current = true;
+      
+      console.log('[AuthContext] Fetching RBAC permissions for role:', userRole);
+      
+      const rbacPermissions = await getCachedPermissionsByRole(userRole);
+      
+      console.log('[AuthContext] RBAC permissions fetched successfully:', {
+        role: rbacPermissions.role,
+        methodCount: Object.keys(rbacPermissions.methods || {}).length,
+      });
+      
+      setPermissions(rbacPermissions);
+    } catch (error) {
+      console.error('[AuthContext] Error fetching RBAC permissions:', error);
+      // Don't throw - allow app to continue
+    } finally {
+      permissionsFetchedRef.current = false;
+    }
+  };
+
+  /**
    * Fetch user data from backend after authentication
    */
   const fetchUserData = async () => {
@@ -140,10 +174,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userId: result.user.id,
           email: result.user.email,
           firstName: result.user.firstName,
+          role: result.user.role || result.user.userRole,
         });
         
         setBackendUserId(result.user.id);
         setUserData(result.user);
+
+        // Fetch RBAC permissions based on user role
+        const userRole = result.user.role || result.user.userRole;
+        if (userRole && !permissions) {
+          await fetchPermissions(userRole);
+        }
       } else {
         console.warn('[AuthContext] User exists but no user data returned');
       }
@@ -160,8 +201,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    */
   const refetchUserData = async () => {
     userDataFetchedRef.current = false;
+    permissionsFetchedRef.current = false;
     setBackendUserId(null);
     setUserData(null);
+    setPermissions(null);
     await fetchUserData();
   };
 
@@ -174,7 +217,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       clearTokenCache();
       setBackendUserId(null);
       setUserData(null);
+      setPermissions(null);
       userDataFetchedRef.current = false;
+      permissionsFetchedRef.current = false;
       await clerkSignOut();
       console.log('[AuthContext] User signed out successfully');
     } catch (error) {
@@ -230,6 +275,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     sessionId: session?.id || null,
     backendUserId,
     userData,
+    permissions,
     getToken,
     signOut,
     refetchUserData,
