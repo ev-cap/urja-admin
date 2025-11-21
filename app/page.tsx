@@ -12,7 +12,7 @@ export default function LandingPage() {
       <div className="w-full max-w-6xl">
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4">
-            Urja Admin
+            ROOL Admin
           </h1>
           <p className="text-xl text-muted-foreground">
             Powerful dashboard for managing your application
@@ -21,7 +21,7 @@ export default function LandingPage() {
 
         <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="space-y-3">
+            <CardHeader className="space-y-3 text-center">
               <CardTitle className="text-2xl">Sign In</CardTitle>
               <CardDescription>
                 Access your existing account
@@ -37,7 +37,7 @@ export default function LandingPage() {
           </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="space-y-3">
+            <CardHeader className="space-y-3 text-center">
               <CardTitle className="text-2xl">Sign Up</CardTitle>
               <CardDescription>
                 Create a new account to get started
@@ -45,7 +45,7 @@ export default function LandingPage() {
             </CardHeader>
             <CardContent>
               <Link href="/auth/signup">
-                <Button className="w-full" variant="outline" size="lg">
+                <Button className="w-full" size="lg">
                   Sign Up
                 </Button>
               </Link>
