@@ -163,7 +163,7 @@ export default function SignUpPage() {
         <div className="text-center mb-8">
           <Link href="/">
             <h1 className="text-3xl font-bold text-foreground mb-2 cursor-pointer hover:text-primary transition-colors">
-              Urja Admin
+              ROOl Admin
             </h1>
           </Link>
           <p className="text-muted-foreground">
