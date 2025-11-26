@@ -83,7 +83,7 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --radius: 0.625rem;
   --d-bg: 0 0% 10%;
-  --d-muted: 0 0% 20%;
+  --d-muted: 0 0% 15%;
   --d-fg: 0 0% 100%;
   --d-border: 0 0% 20%;
   --d-sheet: 0 0% 12%;
@@ -162,4 +162,182 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* ==========================================
+   MODERN CUSTOM SCROLLBAR STYLES
+   ========================================== */
+
+/* Main Scrollbar - Beautiful gradient design */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    135deg, 
+    rgba(99, 102, 241, 0.6) 0%, 
+    rgba(168, 85, 247, 0.6) 50%,
+    rgba(236, 72, 153, 0.6) 100%
+  );
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    135deg, 
+    rgba(99, 102, 241, 0.9) 0%, 
+    rgba(168, 85, 247, 0.9) 50%,
+    rgba(236, 72, 153, 0.9) 100%
+  );
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4),
+              0 0 20px rgba(168, 85, 247, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(
+    135deg, 
+    rgba(99, 102, 241, 1) 0%, 
+    rgba(168, 85, 247, 1) 50%,
+    rgba(236, 72, 153, 1) 100%
+  );
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.6),
+              0 0 30px rgba(168, 85, 247, 0.4);
+}
+
+/* Firefox support */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.6) transparent;
+  scroll-behavior: smooth;
+}
+
+/* ==========================================
+   THIN SCROLLBAR VARIANT
+   For nested containers or subtle areas
+   ========================================== */
+
+.custom-scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 2px;
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    135deg, 
+    rgba(99, 102, 241, 0.5) 0%, 
+    rgba(168, 85, 247, 0.5) 100%
+  );
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    135deg, 
+    rgba(99, 102, 241, 0.8) 0%, 
+    rgba(168, 85, 247, 0.8) 100%
+  );
+  box-shadow: 0 0 6px rgba(99, 102, 241, 0.3);
+}
+
+.custom-scrollbar-thin::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(
+    135deg, 
+    rgba(99, 102, 241, 1) 0%, 
+    rgba(168, 85, 247, 1) 100%
+  );
+}
+
+/* ==========================================
+   MINIMAL SCROLLBAR VARIANT
+   For very subtle areas
+   ========================================== */
+
+.custom-scrollbar-minimal::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar-minimal::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar-minimal::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.3);
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.custom-scrollbar-minimal::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+/* ==========================================
+   LIGHT MODE ADJUSTMENTS
+   ========================================== */
+
+@media (prefers-color-scheme: light) {
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      135deg, 
+      rgba(99, 102, 241, 0.7) 0%, 
+      rgba(168, 85, 247, 0.7) 50%,
+      rgba(236, 72, 153, 0.7) 100%
+    );
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    border: 2px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3),
+                0 0 20px rgba(168, 85, 247, 0.15);
+  }
+
+  .custom-scrollbar-thin::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      135deg, 
+      rgba(99, 102, 241, 0.6) 0%, 
+      rgba(168, 85, 247, 0.6) 100%
+    );
+  }
+}
+
+/* ==========================================
+   UTILITY CLASSES
+   ========================================== */
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Always show scrollbar */
+.scrollbar-always::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* Smooth scroll behavior */
+.scroll-smooth {
+  scroll-behavior: smooth;
 }
