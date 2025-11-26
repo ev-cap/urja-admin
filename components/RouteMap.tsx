@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { decode } from "@mapbox/polyline";
+import { useTheme } from "next-themes";
 
 // Fix for default marker icons in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -105,6 +106,9 @@ function FitBounds({ routes }: { routes: RouteData[] }) {
 export default function RouteMap({ routes }: RouteMapProps) {
   const [isMounted, setIsMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { theme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
   const routeColors = [
     "#3b82f6", // blue
     "#10b981", // green
@@ -115,6 +119,10 @@ export default function RouteMap({ routes }: RouteMapProps) {
     "#06b6d4", // cyan
     "#f97316", // orange
   ];
+
+  // Determine if dark mode is active
+  const currentTheme = mounted ? (resolvedTheme || theme) : "light";
+  const isDarkMode = currentTheme === "dark";
 
   // Use ref callback to ensure container is ready
   const setContainerRef = (node: HTMLDivElement | null) => {
@@ -128,6 +136,7 @@ export default function RouteMap({ routes }: RouteMapProps) {
   useEffect(() => {
     // Fallback: ensure component is mounted
     if (typeof window !== 'undefined') {
+      setMounted(true);
       const timer = setTimeout(() => {
         if (containerRef.current) {
           setIsMounted(true);
@@ -157,7 +166,7 @@ export default function RouteMap({ routes }: RouteMapProps) {
         </div>
       ) : (
       <MapContainer
-        key="route-map" // Force remount if needed
+        key={`route-map-${isDarkMode ? 'dark' : 'light'}`} // Force remount when theme changes
         center={[20.5937, 78.9629]} // Center of India
         zoom={5}
         style={{ height: "100%", width: "100%", zIndex: 0 }}
@@ -171,10 +180,17 @@ export default function RouteMap({ routes }: RouteMapProps) {
           }, 100);
         }}
       >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          {isDarkMode ? (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            />
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          )}
 
           <FitBounds routes={routes} />
 
