@@ -1009,10 +1009,14 @@
           },
           "to": {
             "type": "string"
+          },
+          "userId": {
+            "type": "string"
           }
         },
         "required": [
           "id",
+          "userId",
           "to",
           "subject",
           "from",
@@ -2217,6 +2221,77 @@
         "title": "UserNotificationAPI represents the API response format for user notifications\n",
         "type": "object"
       },
+      "payments.Payment": {
+        "properties": {
+          "GST": {
+            "type": "number"
+          },
+          "TotalAmount": {
+            "type": "number"
+          },
+          "chargeAmount": {
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "paymentMethod": {
+            "type": "string"
+          },
+          "rewardPointsEarned": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "serviceFee": {
+            "type": "number"
+          },
+          "sessionId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "stationId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "status": {
+            "type": "string"
+          },
+          "transactionId": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "sessionId",
+          "stationId",
+          "currency",
+          "status",
+          "transactionId",
+          "rewardPointsEarned",
+          "createdAt",
+          "updatedAt",
+          "chargeAmount",
+          "GST",
+          "TotalAmount",
+          "paymentMethod",
+          "serviceFee"
+        ],
+        "title": "Payment represents a payment transaction\n",
+        "type": "object"
+      },
       "primitive.ObjectID": {
         "format": "byte",
         "title": "ObjectID is the BSON ObjectID type.\n",
@@ -2225,6 +2300,143 @@
       "rbac.Role": {
         "title": "Role represents a user role type.\n",
         "type": "string"
+      },
+      "referrals.Referral": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "redeemedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "refereeId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "referralCode": {
+            "type": "string"
+          },
+          "referralDate": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "referrerId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "rewardAmount": {
+            "type": "number"
+          },
+          "rewardStatus": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "referrerId",
+          "refereeId",
+          "referralCode",
+          "referralDate",
+          "rewardStatus",
+          "rewardAmount",
+          "redeemedAt",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "Referral represents a user referral\n",
+        "type": "object"
+      },
+      "reviews.RatingReview": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataSource": {
+            "type": "string"
+          },
+          "rating": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stationId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "text": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "userName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "userName",
+          "stationId",
+          "rating",
+          "text",
+          "dataSource",
+          "createdAt",
+          "updatedAt"
+        ],
+        "title": "RatingReview represents a rating and review document\n",
+        "type": "object"
+      },
+      "reviews.RatingReviewWithUser": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "dataSource": {
+            "type": "string"
+          },
+          "rating": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stationId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "text": {
+            "type": "string"
+          },
+          "userName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "stationId",
+          "rating",
+          "text",
+          "dataSource",
+          "createdAt",
+          "userName"
+        ],
+        "title": "RatingReviewWithUser represents a rating and review document with user\ninformation\n",
+        "type": "object"
       },
       "reviews.ReviewComment": {
         "properties": {
@@ -2348,6 +2560,72 @@
           "redeemedAt"
         ],
         "title": "RedemptionAPI represents the API response format for redemption records\n",
+        "type": "object"
+      },
+      "rewards.Reward": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "category": {
+            "type": "string"
+          },
+          "current_points": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "points_spent": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "redeemed_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reward": {
+            "type": "string"
+          },
+          "reward_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "total_earned": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "total_redeemed": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "user": {
+            "type": "string"
+          },
+          "user_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          }
+        },
+        "required": [
+          "_id",
+          "reward_id",
+          "user_id",
+          "user",
+          "current_points",
+          "total_earned",
+          "total_redeemed",
+          "reward",
+          "points_spent",
+          "category",
+          "status",
+          "redeemed_at",
+          "expires_at"
+        ],
+        "title": "Reward represents a user reward transaction\n",
         "type": "object"
       },
       "routes.AddedStation": {
@@ -3133,6 +3411,53 @@
         "title": "PlanRouteAnalysis represents the analysis of a route including charge stops and\nscoring for planning\n",
         "type": "object"
       },
+      "routes.PlanRouteAnalytics": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "apiResponse": {
+            "$ref": "#/components/schemas/routes.PlanRouteResponse"
+          },
+          "consoleLogs": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "title": "\"success\" or \"error\"\n",
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/routes.PlanRouteSummary"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "vehicleId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "vehicleId",
+          "apiResponse",
+          "consoleLogs",
+          "status",
+          "createdAt",
+          "durationMs",
+          "summary"
+        ],
+        "title": "PlanRouteAnalytics represents analytics data for planroute API calls\n",
+        "type": "object"
+      },
       "routes.PlanRouteRequest": {
         "properties": {
           "departureTime": {
@@ -3179,6 +3504,81 @@
           "endBattery"
         ],
         "title": "PlanRouteRequest represents the request for planning a new route\n",
+        "type": "object"
+      },
+      "routes.PlanRouteResponse": {
+        "properties": {
+          "apiCallCount": {
+            "format": "int64",
+            "title": "Number of Google Maps API calls made\n",
+            "type": "integer"
+          },
+          "batteryManagement": {
+            "$ref": "#/components/schemas/routes.PlanBatteryManagement"
+          },
+          "bestRouteIndex": {
+            "format": "int64",
+            "title": "Index of the best route\n",
+            "type": "integer"
+          },
+          "input": {
+            "$ref": "#/components/schemas/routes.PlanRouteRequest"
+          },
+          "message": {
+            "type": "string"
+          },
+          "routeAnalyses": {
+            "items": {
+              "$ref": "#/components/schemas/routes.PlanRouteAnalysis"
+            },
+            "title": "Complete analysis of all routes\n",
+            "type": "array"
+          },
+          "routeCount": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "routeId": {
+            "title": "Unique ID for async station fetching\n",
+            "type": "string"
+          },
+          "routeSegments": {
+            "items": {
+              "$ref": "#/components/schemas/routes.PlanRouteSegment"
+            },
+            "title": "Segments between stops\n",
+            "type": "array"
+          },
+          "stationsStatus": {
+            "title": "\"loading\", \"completed\", \"failed\"\n",
+            "type": "string"
+          },
+          "vehicle": {
+            "$ref": "#/components/schemas/routes.PlanVehicleDetails"
+          },
+          "waypoints": {
+            "items": {
+              "$ref": "#/components/schemas/routes.PlanWaypoint"
+            },
+            "title": "Intermediate stops with arrival times\n",
+            "type": "array"
+          }
+        },
+        "required": [
+          "message",
+          "input",
+          "vehicle",
+          "batteryManagement",
+          "routeCount",
+          "routeAnalyses",
+          "bestRouteIndex",
+          "waypoints",
+          "routeSegments",
+          "apiCallCount",
+          "routeId",
+          "stationsStatus"
+        ],
+        "title": "PlanRouteResponse represents the response when planning a route\n",
         "type": "object"
       },
       "routes.PlanRouteSegment": {
@@ -3257,6 +3657,47 @@
           "endLocation"
         ],
         "title": "PlanRouteStep represents a step in the route with detailed instructions for\nplanning\n",
+        "type": "object"
+      },
+      "routes.PlanRouteSummary": {
+        "properties": {
+          "apiCallPercentage": {
+            "type": "number"
+          },
+          "cacheHitPercentage": {
+            "type": "number"
+          },
+          "databaseQueries": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "directionsApiCalls": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "placesApiCalls": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "stationCacheHits": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "totalApiCalls": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "directionsApiCalls",
+          "placesApiCalls",
+          "totalApiCalls",
+          "databaseQueries",
+          "stationCacheHits",
+          "cacheHitPercentage",
+          "apiCallPercentage"
+        ],
+        "title": "PlanRouteSummary represents the summary statistics for a planroute API call\n",
         "type": "object"
       },
       "routes.PlanStationConnector": {
@@ -12210,6 +12651,456 @@
         "summary": "UpdateOffer updates an existing offer\n"
       }
     },
+    "/payments": {
+      "get": {
+        "operationId": "GET:payments.GetPayments",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "payments": {
+                      "items": {
+                        "$ref": "#/components/schemas/payments.Payment"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "payments"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetPayments returns a list of all payment transactions in the system\n"
+      },
+      "post": {
+        "operationId": "POST:payments.CreatePayment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "GST": {
+                    "type": "number"
+                  },
+                  "TotalAmount": {
+                    "type": "number"
+                  },
+                  "chargeAmount": {
+                    "type": "number"
+                  },
+                  "currency": {
+                    "type": "string"
+                  },
+                  "paymentMethod": {
+                    "type": "string"
+                  },
+                  "rewardPointsEarned": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "serviceFee": {
+                    "type": "number"
+                  },
+                  "sessionId": {
+                    "$ref": "#/components/schemas/primitive.ObjectID"
+                  },
+                  "stationId": {
+                    "$ref": "#/components/schemas/primitive.ObjectID"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "transactionId": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "$ref": "#/components/schemas/primitive.ObjectID"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "sessionId",
+                  "stationId",
+                  "currency",
+                  "status",
+                  "transactionId",
+                  "rewardPointsEarned",
+                  "chargeAmount",
+                  "GST",
+                  "TotalAmount",
+                  "paymentMethod",
+                  "serviceFee"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "CreatePayment creates a new payment transaction with the provided details\n"
+      }
+    },
+    "/payments/refund": {
+      "post": {
+        "operationId": "POST:payments.RequestRefund",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "amount": {
+                    "type": "number"
+                  },
+                  "paymentId": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "paymentId",
+                  "userId",
+                  "reason",
+                  "amount"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "refundId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "refundId",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "RequestRefund requests a refund for a payment\n"
+      }
+    },
+    "/payments/session/{sessionId}": {
+      "get": {
+        "operationId": "GET:payments.GetSessionPayments",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "payments": {
+                      "items": {
+                        "$ref": "#/components/schemas/payments.Payment"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "payments"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetSessionPayments returns all payment transactions for a specific charging\nsession\n"
+      }
+    },
+    "/payments/station/{stationId}": {
+      "get": {
+        "operationId": "GET:payments.GetStationPayments",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "stationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "payments": {
+                      "items": {
+                        "$ref": "#/components/schemas/payments.Payment"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "payments"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetStationPayments returns all payment transactions for a specific charging\nstation\n"
+      }
+    },
+    "/payments/users/{userId}": {
+      "get": {
+        "operationId": "GET:payments.GetUserPayments",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "payments": {
+                      "items": {
+                        "$ref": "#/components/schemas/payments.Payment"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "payments"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetUserPayments returns all payment transactions for a specific user\n"
+      }
+    },
+    "/payments/{paymentId}": {
+      "delete": {
+        "operationId": "DELETE:payments.DeletePayment",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "paymentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeletePayment removes a payment transaction from the system by its ID\n"
+      },
+      "put": {
+        "operationId": "PUT:payments.UpdatePayment",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "paymentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "GST": {
+                    "type": "number"
+                  },
+                  "TotalAmount": {
+                    "type": "number"
+                  },
+                  "chargeAmount": {
+                    "type": "number"
+                  },
+                  "paymentMethod": {
+                    "type": "string"
+                  },
+                  "rewardPointsEarned": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "serviceFee": {
+                    "type": "number"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "transactionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "transactionId",
+                  "rewardPointsEarned",
+                  "chargeAmount",
+                  "GST",
+                  "TotalAmount",
+                  "paymentMethod",
+                  "serviceFee"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "UpdatePayment updates an existing payment transaction's details by its ID\n"
+      }
+    },
     "/rbac/add-apis-to-role-admin": {
       "post": {
         "operationId": "POST:rbac.AddAPIsToRoleAdmin",
@@ -12726,6 +13617,842 @@
           }
         },
         "summary": "SyncAPIsToDatabase extracts all API endpoints from openapi.json and stores them\nin MongoDB\n"
+      }
+    },
+    "/referrals": {
+      "get": {
+        "operationId": "GET:referrals.GetReferrals",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "referrals": {
+                      "items": {
+                        "$ref": "#/components/schemas/referrals.Referral"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "referrals"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetReferrals returns a list of all referrals in the system\n"
+      },
+      "post": {
+        "operationId": "POST:referrals.CreateReferral",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "refereeId": {
+                    "type": "string"
+                  },
+                  "referralCode": {
+                    "type": "string"
+                  },
+                  "referrerId": {
+                    "type": "string"
+                  },
+                  "rewardAmount": {
+                    "type": "number"
+                  },
+                  "rewardStatus": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "referrerId",
+                  "refereeId",
+                  "referralCode",
+                  "rewardStatus",
+                  "rewardAmount"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "CreateReferral creates a new referral with the provided details\n"
+      }
+    },
+    "/referrals/code/{code}": {
+      "get": {
+        "operationId": "GET:referrals.GetReferralsByCode",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "referrals": {
+                      "items": {
+                        "$ref": "#/components/schemas/referrals.Referral"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "referrals"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetReferralsByCode returns all referrals associated with a specific referral\ncode\n"
+      }
+    },
+    "/referrals/referee/{refereeid}": {
+      "get": {
+        "operationId": "GET:referrals.GetRefereeReferrals",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "refereeid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "referrals": {
+                      "items": {
+                        "$ref": "#/components/schemas/referrals.Referral"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "referrals"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetRefereeReferrals returns all referrals received by a specific user\n"
+      }
+    },
+    "/referrals/referrer/{referrerid}": {
+      "get": {
+        "operationId": "GET:referrals.GetReferrerReferrals",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "referrerid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "referrals": {
+                      "items": {
+                        "$ref": "#/components/schemas/referrals.Referral"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "referrals"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetReferrerReferrals returns all referrals made by a specific user\n"
+      }
+    },
+    "/referrals/{referralId}": {
+      "delete": {
+        "operationId": "DELETE:referrals.DeleteReferral",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "referralId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteReferral removes a referral from the system by its ID\n"
+      },
+      "put": {
+        "operationId": "PUT:referrals.UpdateReferral",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "referralId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "redeemedAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "rewardAmount": {
+                    "type": "number"
+                  },
+                  "rewardStatus": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "rewardStatus",
+                  "rewardAmount",
+                  "redeemedAt"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "UpdateReferral updates an existing referral's details by its ID\n"
+      }
+    },
+    "/reviews": {
+      "get": {
+        "operationId": "GET:reviews.GetReviews",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "reviews": {
+                      "items": {
+                        "$ref": "#/components/schemas/reviews.RatingReview"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetReviews returns a list of all reviews in the system\n"
+      },
+      "post": {
+        "operationId": "POST:reviews.CreateReview",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "dataSource": {
+                    "type": "string"
+                  },
+                  "rating": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "stationId": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "stationId",
+                  "rating",
+                  "text",
+                  "dataSource"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "CreateReview creates a new review with the provided details\n"
+      }
+    },
+    "/reviews/report-issue": {
+      "post": {
+        "operationId": "POST:reviews.ReportIssue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "description": {
+                    "type": "string"
+                  },
+                  "issueType": {
+                    "title": "\"charging\", \"payment\", \"access\", \"safety\", \"other\"\n",
+                    "type": "string"
+                  },
+                  "severity": {
+                    "title": "\"low\", \"medium\", \"high\", \"critical\"\n",
+                    "type": "string"
+                  },
+                  "stationId": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "stationId",
+                  "issueType",
+                  "description",
+                  "severity"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "issueId": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "issueId",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "ReportIssue reports an issue with a charging station\n"
+      }
+    },
+    "/reviews/review/{reviewId}": {
+      "get": {
+        "operationId": "GET:reviews.GetReview",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "reviewId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "review": {
+                      "$ref": "#/components/schemas/reviews.RatingReview"
+                    }
+                  },
+                  "required": [
+                    "review"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetReview returns a specific review by its ID\n"
+      }
+    },
+    "/reviews/stations/{stationId}": {
+      "get": {
+        "operationId": "GET:reviews.GetStationReviews",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "stationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "reviews": {
+                      "items": {
+                        "$ref": "#/components/schemas/reviews.RatingReviewWithUser"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetStationReviews returns all reviews for a specific charging station\n"
+      }
+    },
+    "/reviews/users/{userId}": {
+      "get": {
+        "operationId": "GET:reviews.GetUserReviews",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "reviews": {
+                      "items": {
+                        "$ref": "#/components/schemas/reviews.RatingReview"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "reviews"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetUserReviews returns all reviews made by a specific user\n"
+      }
+    },
+    "/reviews/{reviewId}": {
+      "delete": {
+        "operationId": "DELETE:reviews.DeleteReview",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "reviewId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteReview removes a review from the system by its ID\n"
+      },
+      "put": {
+        "operationId": "PUT:reviews.UpdateReview",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "reviewId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "dataSource": {
+                    "title": "Note: dataSource is not updated, only for completeness\n",
+                    "type": "string"
+                  },
+                  "rating": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "rating",
+                  "text",
+                  "dataSource"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "UpdateReview updates an existing review's details by its ID\n"
+      }
+    },
+    "/rewards": {
+      "post": {
+        "operationId": "POST:rewards.CreateReward",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "current_points": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "expires_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "points_spent": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "reward": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "total_earned": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "total_redeemed": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "user": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "user",
+                  "current_points",
+                  "total_earned",
+                  "total_redeemed",
+                  "reward",
+                  "points_spent",
+                  "category",
+                  "status",
+                  "expires_at"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "CreateReward creates a new reward transaction with the provided details\n"
       }
     },
     "/rewards/catalog/{rewardCatalogId}": {
@@ -13448,6 +15175,143 @@
         "summary": "UpdateRedemption updates an existing redemption record\n"
       }
     },
+    "/rewards/reward/{rewardId}": {
+      "delete": {
+        "operationId": "DELETE:rewards.DeleteReward",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "rewardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteReward removes a reward transaction from the system by its ID\n"
+      },
+      "put": {
+        "operationId": "PUT:rewards.UpdateReward",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "rewardId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "category": {
+                    "type": "string"
+                  },
+                  "current_points": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "expires_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "points_spent": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "redeemed_at": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "reward": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "total_earned": {
+                    "format": "int64",
+                    "type": "integer"
+                  },
+                  "total_redeemed": {
+                    "format": "int64",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "current_points",
+                  "total_earned",
+                  "total_redeemed",
+                  "reward",
+                  "points_spent",
+                  "category",
+                  "status",
+                  "redeemed_at",
+                  "expires_at"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "UpdateReward updates an existing reward transaction's details by its ID\n"
+      }
+    },
     "/rewards/user/redeem/{userId}": {
       "get": {
         "operationId": "GET:rewards.GetUserRedemptions",
@@ -13491,6 +15355,51 @@
           }
         },
         "summary": "GetUserRedemptions returns all redemption records for a specific user\n"
+      }
+    },
+    "/rewards/users/{userId}": {
+      "get": {
+        "operationId": "GET:rewards.GetUserRewards",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "userId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "rewards": {
+                      "items": {
+                        "$ref": "#/components/schemas/rewards.Reward"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "rewards"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetUserRewards returns all reward transactions for a specific user\n"
       }
     },
     "/rewards/valid": {
@@ -14345,6 +16254,38 @@
         "summary": "AddRoute adds a saved route using Clerk authentication\n"
       }
     },
+    "/routes/analytics": {
+      "get": {
+        "operationId": "GET:routes.GetPlanRouteAnalytics",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "analytics": {
+                      "items": {
+                        "$ref": "#/components/schemas/routes.PlanRouteAnalytics"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "analytics"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetPlanRouteAnalytics retrieves all analytics data from ev_planroute_analytics\ntable\n"
+      }
+    },
     "/routes/create": {
       "post": {
         "operationId": "POST:routes.CreateRoute",
@@ -14619,12 +16560,20 @@
                       "format": "int64",
                       "type": "integer"
                     },
+                    "routeId": {
+                      "title": "Unique ID for async station fetching\n",
+                      "type": "string"
+                    },
                     "routeSegments": {
                       "items": {
                         "$ref": "#/components/schemas/routes.PlanRouteSegment"
                       },
                       "title": "Segments between stops\n",
                       "type": "array"
+                    },
+                    "stationsStatus": {
+                      "title": "\"loading\", \"completed\", \"failed\"\n",
+                      "type": "string"
                     },
                     "vehicle": {
                       "$ref": "#/components/schemas/routes.PlanVehicleDetails"
@@ -14647,7 +16596,9 @@
                     "bestRouteIndex",
                     "waypoints",
                     "routeSegments",
-                    "apiCallCount"
+                    "apiCallCount",
+                    "routeId",
+                    "stationsStatus"
                   ],
                   "type": "object"
                 }

@@ -2,12 +2,24 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/loader";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import Sheet from "@/components/ui/native-swipeable-sheets";
+import dynamic from "next/dynamic";
+
+// Dynamically import RouteMap to avoid SSR issues with Leaflet
+const RouteMap = dynamic(() => import("@/components/RouteMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[400px] flex items-center justify-center bg-muted/30 rounded-lg">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  ),
+});
 
 interface ActivityLog {
   id: string;
@@ -29,6 +41,9 @@ export default function DashboardPage() {
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [routeAnalytics, setRouteAnalytics] = useState<any[]>([]);
+  const [loadingRouteAnalytics, setLoadingRouteAnalytics] = useState(false);
+  const [routeAnalyticsError, setRouteAnalyticsError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -42,6 +57,7 @@ export default function DashboardPage() {
       }
       fetchDashboardStats();
       fetchActivityLogs();
+      fetchRouteAnalytics();
     }
   }, [isAuthenticated, authLoading]);
 
@@ -143,6 +159,52 @@ export default function DashboardPage() {
     } catch (err) {
       console.error('[Dashboard] Error fetching activity logs:', err);
       // Don't set error state for activity logs to avoid disrupting the dashboard
+    }
+  };
+
+  const fetchRouteAnalytics = async () => {
+    setLoadingRouteAnalytics(true);
+    setRouteAnalyticsError(null);
+    
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      
+      if (!API_URL) {
+        throw new Error('API_URL is not defined in environment');
+      }
+
+      const token = await getManagedToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+        headers['x-jwt-token'] = token;
+      }
+
+      const response = await axios.get(`${API_URL}/routes/analytics`, { headers });
+      
+      // Handle response structure - could be { analytics: [...] } or [...]
+      const analytics = response.data?.analytics || response.data;
+      const routes = Array.isArray(analytics) ? analytics : [];
+      
+      console.log('[Dashboard] Route analytics fetched:', {
+        total: routes.length,
+        sample: routes[0] ? Object.keys(routes[0]) : null,
+      });
+      
+      setRouteAnalytics(routes);
+    } catch (err: any) {
+      console.error('[Dashboard] Route analytics fetch failed:', err);
+      if (axios.isAxiosError(err)) {
+        setRouteAnalyticsError(err.response?.data?.message || err.message || 'Failed to fetch route analytics');
+      } else {
+        setRouteAnalyticsError('An unexpected error occurred');
+      }
+      setRouteAnalytics([]);
+    } finally {
+      setLoadingRouteAnalytics(false);
     }
   };
 
@@ -259,6 +321,35 @@ export default function DashboardPage() {
           scrollbar-width: thin;
           scrollbar-color: rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.3);
         }
+        
+        /* Hide scrollbar for Plan Route Analytics */
+        .route-analytics-content::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .route-analytics-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        /* Hide scrollbar for Recent Activity Logs */
+        .activity-logs-content::-webkit-scrollbar {
+          display: none;
+        }
+        
+        .activity-logs-content {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        /* Fix marker stretching */
+        .custom-map-marker img {
+          object-fit: contain !important;
+          width: auto !important;
+          height: auto !important;
+          max-width: 40px !important;
+          max-height: 40px !important;
+        }
       `}</style>
       <div className="space-y-8">
       {/* Header */}
@@ -304,25 +395,129 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Recent Activity and Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        {/* Overview Chart */}
-        <Card className="col-span-4">
+      {/* Recent Activity and Plan Route Analytics */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
+        {/* Plan Route Analytics */}
+        <Card className="col-span-4 h-[600px] flex flex-col">
           <CardHeader>
-            <CardTitle>Overview</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Route className="h-5 w-5 text-primary" />
+              Plan Route Analytics
+            </CardTitle>
             <CardDescription>
-              Platform performance over the last 6 months
+              Comprehensive analysis of route planning and charging patterns
             </CardDescription>
           </CardHeader>
-          <CardContent className="pl-2">
-            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-              <Activity className="h-12 w-12 mb-4 opacity-20" />
-            </div>
+          <CardContent className="pl-2 flex-1 overflow-hidden route-analytics-content">
+            {loadingRouteAnalytics ? (
+              <div className="h-full flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : routeAnalyticsError ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <p className="text-sm">{routeAnalyticsError}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchRouteAnalytics}
+                  className="mt-2"
+                >
+                  <Loader2 className="h-4 w-4 mr-2" />
+                  Retry
+                </Button>
+              </div>
+            ) : routeAnalytics.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                <div className="text-center">
+                  <Route className="h-12 w-12 mb-4 opacity-20 mx-auto" />
+                  <p className="text-sm mb-2">No route analytics data available</p>
+                  <p className="text-xs opacity-70">Routes will appear here once users plan routes</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchRouteAnalytics}
+                  className="mt-2"
+                >
+                  <Loader2 className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Routes</p>
+                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      {routeAnalytics.length}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Distance</p>
+                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                      {(() => {
+                        const total = routeAnalytics.reduce((sum, route) => {
+                          const distance = route?.apiResponse?.routeAnalyses?.[0]?.route?.distanceKm || 
+                                          route?.apiResponse?.batteryManagement?.routeDistanceEstimate || 0;
+                          return sum + distance;
+                        }, 0);
+                        return (total / 1000).toFixed(1);
+                      })()}k km
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Avg Charging Time</p>
+                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                      {(() => {
+                        const total = routeAnalytics.reduce((sum, route) => {
+                          const time = route?.apiResponse?.batteryManagement?.totalChargingTime || 
+                                       route?.apiResponse?.routeAnalyses?.[0]?.totalChargingTime || 0;
+                          return sum + time;
+                        }, 0);
+                        const avg = routeAnalytics.length > 0 ? total / routeAnalytics.length : 0;
+                        return Math.round(avg);
+                      })()} min
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <p className="text-xs text-muted-foreground mb-1">Total Charging Cost</p>
+                    <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                      ₹{(() => {
+                        const total = routeAnalytics.reduce((sum, route) => {
+                          const cost = route?.apiResponse?.batteryManagement?.totalChargingCost || 
+                                      route?.apiResponse?.routeAnalyses?.[0]?.totalChargingCost || 0;
+                          return sum + cost;
+                        }, 0);
+                        return total.toFixed(0);
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Route Map Visualization */}
+                <div className="h-[400px] w-full">
+                  <RouteMap routes={routeAnalytics} />
+                </div>
+                
+                {/* Route Legend */}
+                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-1 bg-blue-500"></div>
+                    <span>Route Paths</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70">
+                    Different colors represent different routes across India
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Recent Activity Logs */}
-        <Card className="col-span-3 border-2 shadow-lg">
+        <Card className="col-span-3 border-2 shadow-lg h-[600px] flex flex-col">
           <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10 pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -336,8 +531,8 @@ export default function DashboardPage() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
+          <CardContent className="p-4 flex-1 overflow-y-auto activity-logs-content">
+            <div className="space-y-2 pr-2">
               {activityLogs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
