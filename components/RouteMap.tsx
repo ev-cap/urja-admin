@@ -116,13 +116,25 @@ export default function RouteMap({ routes }: RouteMapProps) {
     "#f97316", // orange
   ];
 
+  // Use ref callback to ensure container is ready
+  const setContainerRef = (node: HTMLDivElement | null) => {
+    containerRef.current = node;
+    if (node) {
+      // Container is in DOM, safe to render map
+      setTimeout(() => setIsMounted(true), 50);
+    }
+  };
+
   useEffect(() => {
-    // Ensure component is mounted before rendering map
-    // Small delay to ensure DOM is fully ready
-    const timer = setTimeout(() => {
-      setIsMounted(true);
-    }, 100);
-    return () => clearTimeout(timer);
+    // Fallback: ensure component is mounted
+    if (typeof window !== 'undefined') {
+      const timer = setTimeout(() => {
+        if (containerRef.current) {
+          setIsMounted(true);
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   if (routes.length === 0) {
@@ -133,36 +145,32 @@ export default function RouteMap({ routes }: RouteMapProps) {
     );
   }
 
-  if (!isMounted) {
-    return (
-      <div className="h-full w-full flex items-center justify-center bg-muted/30 rounded-lg">
-        <p className="text-muted-foreground text-sm">Loading map...</p>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div 
-        ref={containerRef}
-        className="h-full w-full rounded-lg overflow-hidden border border-border" 
-        style={{ position: 'relative', minHeight: '400px' }}
+    <div 
+      ref={setContainerRef}
+      className="h-full w-full rounded-lg overflow-hidden border border-border" 
+      style={{ position: 'relative', minHeight: '400px' }}
+    >
+      {!isMounted ? (
+        <div className="h-full w-full flex items-center justify-center bg-muted/30">
+          <p className="text-muted-foreground text-sm">Loading map...</p>
+        </div>
+      ) : (
+      <MapContainer
+        key="route-map" // Force remount if needed
+        center={[20.5937, 78.9629]} // Center of India
+        zoom={5}
+        style={{ height: "100%", width: "100%", zIndex: 0 }}
+        scrollWheelZoom={true}
+        whenCreated={(map) => {
+          // Ensure map is properly initialized
+          setTimeout(() => {
+            if (map && map.getContainer()) {
+              map.invalidateSize();
+            }
+          }, 100);
+        }}
       >
-        <MapContainer
-          key="route-map" // Force remount if needed
-          center={[20.5937, 78.9629]} // Center of India
-          zoom={5}
-          style={{ height: "100%", width: "100%", zIndex: 0 }}
-          scrollWheelZoom={true}
-          whenCreated={(map) => {
-            // Ensure map is properly initialized
-            setTimeout(() => {
-              if (map && map.getContainer()) {
-                map.invalidateSize();
-              }
-            }, 100);
-          }}
-        >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -207,7 +215,7 @@ export default function RouteMap({ routes }: RouteMapProps) {
             );
           })}
         </MapContainer>
-      </div>
-    </>
+      )}
+    </div>
   );
 }

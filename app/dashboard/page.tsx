@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import Sheet from "@/components/ui/native-swipeable-sheets";
@@ -374,25 +375,41 @@ export default function DashboardPage() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
+        {loading ? (
+          // Skeleton loaders for stats cards
+          Array.from({ length: 4 }).map((_, index) => (
+            <Card key={`skeleton-stat-${index}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.title}
-                </CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-4 rounded" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-primary">{stat.change}</span> from last month
-                </p>
+                <Skeleton className="h-8 w-20 mb-2" />
+                <Skeleton className="h-3 w-32" />
               </CardContent>
             </Card>
-          );
-        })}
+          ))
+        ) : (
+          stats.map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <Card key={stat.title}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {stat.title}
+                  </CardTitle>
+                  <Icon className={`h-4 w-4 ${stat.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <span className="text-primary">{stat.change}</span> from last month
+                  </p>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       {/* Recent Activity and Plan Route Analytics */}
@@ -409,9 +426,26 @@ export default function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2 flex-1 overflow-hidden route-analytics-content">
-            {loadingRouteAnalytics ? (
-              <div className="h-full flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            {loading || loadingRouteAnalytics ? (
+              <div className="h-full space-y-4">
+                {/* Summary Stats Skeletons */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={`skeleton-summary-${index}`} className="p-3 rounded-lg bg-muted/30 border border-border/50">
+                      <Skeleton className="h-3 w-20 mb-2" />
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                  ))}
+                </div>
+                {/* Map Skeleton */}
+                <div className="h-[400px] w-full rounded-lg overflow-hidden border border-border">
+                  <Skeleton className="h-full w-full" />
+                </div>
+                {/* Legend Skeleton */}
+                <div className="flex flex-wrap items-center gap-4 pt-2 border-t">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-48" />
+                </div>
               </div>
             ) : routeAnalyticsError ? (
               <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
@@ -533,7 +567,32 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-4 flex-1 overflow-y-auto activity-logs-content">
             <div className="space-y-2 pr-2">
-              {activityLogs.length === 0 ? (
+              {loading ? (
+                // Skeleton loaders for activity logs
+                Array.from({ length: 5 }).map((_, index) => (
+                  <div
+                    key={`skeleton-activity-${index}`}
+                    className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card"
+                  >
+                    <Skeleton className="h-10 w-10 rounded-lg flex-shrink-0" />
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Skeleton className="h-5 w-16 rounded-md" />
+                          <Skeleton className="h-4 w-24 rounded" />
+                        </div>
+                        {index === 0 && <Skeleton className="h-5 w-12 rounded-full" />}
+                      </div>
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <div className="flex items-center justify-between">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-5 w-16 rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : activityLogs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
                   <p className="text-sm font-medium">No activity logs available</p>
