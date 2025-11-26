@@ -1001,24 +1001,26 @@ export default function APIExplorerPage() {
                           </Button>
                         </div>
                       </div>
+                      
                       <div className="relative rounded-lg border border-border bg-slate-950 overflow-hidden shadow-sm">
-                        {/* Line Numbers */}
-                        <div className="absolute left-0 top-0 bottom-0 w-12 bg-slate-900/50 border-r border-border p-4 text-right select-none overflow-hidden custom-scrollbar-thin rounded-l-lg">
-                          {JSON.stringify(activeTab.response.data, null, 2).split('\n').map((_, i) => (
-                            <div key={i} className="font-mono text-xs text-slate-500 leading-6">
-                              {i + 1}
-                            </div>
-                          ))}
+                          {/* Line Numbers */}
+                          <div className="absolute left-0 top-0 bottom-0 w-12 bg-slate-900/50 border-r border-border p-4 text-right select-none overflow-hidden custom-scrollbar-thin rounded-l-lg">
+                            {JSON.stringify(activeTab.response.data, null, 2).split('\n').map((_, i) => (
+                              <div key={i} className="font-mono text-xs text-slate-500 leading-6">
+                                {i + 1}
+                              </div>
+                            ))}
+                          </div>
+                          {/* Syntax Highlighted Response */}
+                          <pre className="w-full max-h-96 pl-16 pr-4 py-4 font-mono text-sm text-slate-200 overflow-auto leading-6 custom-scrollbar">
+                            <code 
+                              dangerouslySetInnerHTML={{ 
+                                __html: highlightJSON(JSON.stringify(activeTab.response.data, null, 2))
+                              }}
+                            />
+                          </pre>
                         </div>
-                        {/* Syntax Highlighted Response */}
-                        <pre className="w-full max-h-96 pl-16 pr-4 py-4 font-mono text-sm text-slate-200 overflow-auto leading-6 custom-scrollbar">
-                          <code 
-                            dangerouslySetInnerHTML={{ 
-                              __html: highlightJSON(JSON.stringify(activeTab.response.data, null, 2))
-                            }}
-                          />
-                        </pre>
-                      </div>
+                      
                       <div className="flex items-center justify-between text-xs">
                         <span className={cn(
                           "flex items-center gap-1 font-medium",
