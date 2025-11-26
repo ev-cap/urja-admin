@@ -197,6 +197,52 @@ export default function UserManagementPage() {
 
   return (
     <>
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.3);
+          border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.5), rgba(168, 85, 247, 0.5));
+          border-radius: 4px;
+          border: 2px solid rgba(15, 23, 42, 0.3);
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(180deg, rgba(99, 102, 241, 0.8), rgba(168, 85, 247, 0.8));
+        }
+        
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.3);
+        }
+
+        .custom-scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        
+        .custom-scrollbar-thin::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.2);
+          border-radius: 3px;
+        }
+        
+        .custom-scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(99, 102, 241, 0.4);
+          border-radius: 3px;
+        }
+        
+        .custom-scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.7);
+        }
+      `}</style>
+
       <div className="space-y-6 pb-8">
         {/* Header */}
         <div className="flex items-center gap-4">
