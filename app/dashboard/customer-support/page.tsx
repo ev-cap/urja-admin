@@ -31,6 +31,8 @@ import {
   Mail,
   Loader2,
   UserCircle,
+  CheckCircle2,
+  Send,
 } from "lucide-react";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
@@ -53,6 +55,7 @@ interface Issue {
   submittedAt: string;
   updatedAt: string;
   resolutionNotes?: string;
+  resolvedAt?: string;
   logs?: any;
 }
 
@@ -65,6 +68,10 @@ interface UserBasicInfo {
   firstName: string;
   lastName: string;
   email: string;
+}
+
+interface IssueResponse {
+  issue: Issue;
 }
 
 const PRIORITY_CONFIG = {
@@ -127,6 +134,14 @@ export default function CustomerSupportPage() {
   const [userBasicInfo, setUserBasicInfo] = useState<UserBasicInfo | null>(null);
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
   const [userInfoError, setUserInfoError] = useState<string | null>(null);
+
+  // Resolve Issue State
+  const [resolveSheetOpen, setResolveSheetOpen] = useState(false);
+  const [selectedIssueForResolve, setSelectedIssueForResolve] = useState<Issue | null>(null);
+  const [resolutionNotes, setResolutionNotes] = useState("");
+  const [resolvingIssue, setResolvingIssue] = useState(false);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [resolveSuccess, setResolveSuccess] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -233,6 +248,74 @@ export default function CustomerSupportPage() {
     fetchUserBasicInfo(userId);
   };
 
+  const handleResolveIssue = async () => {
+    if (!selectedIssueForResolve) return;
+
+    setResolvingIssue(true);
+    setResolveError(null);
+    setResolveSuccess(false);
+
+    try {
+      const token = await getManagedToken();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+        headers["x-jwt-token"] = token;
+      }
+
+      const response = await axios.put(
+        `${API_URL}/userissues/issue/${selectedIssueForResolve.id}/resolve`,
+        { resolutionNotes },
+        { headers }
+      );
+
+      // Update the issue in the state
+      const updatedIssue = response.data.issue;
+      
+      if (activeTab === "issues") {
+        setIssues((prevIssues) =>
+          prevIssues.map((issue) =>
+            issue.id === updatedIssue.id ? updatedIssue : issue
+          )
+        );
+      } else {
+        setSuggestions((prevSuggestions) =>
+          prevSuggestions.map((issue) =>
+            issue.id === updatedIssue.id ? updatedIssue : issue
+          )
+        );
+      }
+
+      setResolveSuccess(true);
+      setTimeout(() => {
+        setResolveSheetOpen(false);
+        setResolutionNotes("");
+        setSelectedIssueForResolve(null);
+        setResolveSuccess(false);
+      }, 1500);
+    } catch (err: any) {
+      console.error("[CustomerSupport] Error resolving issue:", err);
+      if (axios.isAxiosError(err)) {
+        setResolveError(err.response?.data?.message || err.message || "Failed to resolve issue");
+      } else {
+        setResolveError("An unexpected error occurred");
+      }
+    } finally {
+      setResolvingIssue(false);
+    }
+  };
+
+  const openResolveSheet = (issue: Issue) => {
+    setSelectedIssueForResolve(issue);
+    setResolutionNotes(issue.resolutionNotes || "");
+    setResolveSheetOpen(true);
+    setResolveError(null);
+    setResolveSuccess(false);
+  };
+
   const filteredData = (activeTab === "issues" ? issues : suggestions).filter((item) => {
     const matchesSearch =
       item.issueType.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -250,7 +333,7 @@ export default function CustomerSupportPage() {
     high: issues.filter((i) => i.priority === "high").length,
     medium: issues.filter((i) => i.priority === "medium").length,
     low: issues.filter((i) => i.priority === "low").length,
-    submitted: issues.filter((i) => i.status === "submitted").length,
+    resolved: issues.filter((i) => i.status === "resolved").length,
     suggestions: suggestions.length,
   };
 
@@ -344,14 +427,14 @@ export default function CustomerSupportPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-yellow-500/30 bg-yellow-500/5">
+          <Card className="border-2 border-green-500/30 bg-green-500/5">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted-foreground">Submitted</p>
-                  <p className="text-2xl font-bold mt-1 text-yellow-600 dark:text-yellow-400">{stats.submitted}</p>
+                  <p className="text-xs text-muted-foreground">Resolved</p>
+                  <p className="text-2xl font-bold mt-1 text-green-600 dark:text-green-400">{stats.resolved}</p>
                 </div>
-                <Clock className="h-8 w-8 text-yellow-500/50" />
+                <CheckCircle className="h-8 w-8 text-green-500/50" />
               </div>
             </CardContent>
           </Card>
@@ -408,27 +491,33 @@ export default function CustomerSupportPage() {
                 />
               </div>
               <div className="flex gap-2">
-                <select
-                  value={filterPriority}
-                  onChange={(e) => setFilterPriority(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="all">All Priorities</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="px-3 py-2 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="submitted">Submitted</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="resolved">Resolved</option>
-                  <option value="closed">Closed</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filterPriority}
+                    onChange={(e) => setFilterPriority(e.target.value)}
+                    className="appearance-none pl-3 pr-10 py-2 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="all">All Priorities</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
+                <div className="relative">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="appearance-none pl-3 pr-10 py-2 rounded-md border border-input bg-background text-sm cursor-pointer hover:bg-muted/50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="submitted">Submitted</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
             </div>
 
@@ -514,6 +603,10 @@ export default function CustomerSupportPage() {
 
                           {/* Quick Info */}
                           <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                            <div className="flex items-center gap-1">
+                              <FileText className="h-3 w-3" />
+                              <span className="font-mono">{item.id.slice(0, 10)}...</span>
+                            </div>
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -602,7 +695,14 @@ export default function CustomerSupportPage() {
                               )}
 
                               {/* Additional Details */}
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                                <div className="p-2 rounded-lg bg-muted/50">
+                                  <p className="text-muted-foreground flex items-center gap-1">
+                                    <FileText className="h-3 w-3" />
+                                    Issue ID
+                                  </p>
+                                  <p className="font-mono font-semibold">{item.id}</p>
+                                </div>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -628,10 +728,45 @@ export default function CustomerSupportPage() {
                               {/* Resolution Notes */}
                               {item.resolutionNotes && (
                                 <div>
-                                  <p className="text-xs font-semibold text-muted-foreground mb-1">Resolution Notes</p>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <p className="text-xs font-semibold text-muted-foreground">Resolution Notes</p>
+                                    {item.resolvedAt && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Resolved on {new Date(item.resolvedAt).toLocaleDateString()}
+                                      </p>
+                                    )}
+                                  </div>
                                   <p className="text-sm bg-green-500/10 p-3 rounded-lg border border-green-500/30">
                                     {item.resolutionNotes}
                                   </p>
+                                </div>
+                              )}
+
+                              {/* Resolve Button */}
+                              {item.status !== "resolved" && item.status !== "closed" && (
+                                <div className="pt-4 border-t">
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openResolveSheet(item);
+                                    }}
+                                    className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
+                                  >
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Resolve Issue
+                                  </Button>
+                                </div>
+                              )}
+
+                              {/* Resolved Badge */}
+                              {item.status === "resolved" && (
+                                <div className="pt-4 border-t">
+                                  <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                                    <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                    <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                                      Issue Resolved
+                                    </span>
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -758,6 +893,125 @@ export default function CustomerSupportPage() {
                 >
                   <Mail className="h-4 w-4" />
                   Send Email
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Sheet>
+
+      {/* Resolve Issue Sheet */}
+      <Sheet
+        open={resolveSheetOpen}
+        close={() => {
+          setResolveSheetOpen(false);
+          setResolutionNotes("");
+          setSelectedIssueForResolve(null);
+          setResolveError(null);
+          setResolveSuccess(false);
+        }}
+        title="Resolve Issue"
+      >
+        <div className="flex flex-col gap-6 p-6 pt-12">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+              <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-d-fg">Resolve Issue</h3>
+              <p className="text-sm text-muted-foreground">Mark this issue as resolved</p>
+            </div>
+          </div>
+
+          {/* Success State */}
+          {resolveSuccess && (
+            <div className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/20 p-4 border border-green-200 dark:border-green-900 animate-in fade-in slide-in-from-top-2 duration-300">
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-green-900 dark:text-green-300">Issue Resolved Successfully!</p>
+                <p className="text-sm text-green-700 dark:text-green-400 mt-1">The issue has been marked as resolved.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {resolveError && !resolveSuccess && (
+            <div className="flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/20 p-4 border border-red-200 dark:border-red-900">
+              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-red-900 dark:text-red-300">Error Resolving Issue</p>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-1">{resolveError}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Issue Details */}
+          {selectedIssueForResolve && !resolveSuccess && (
+            <div className="space-y-4">
+              {/* Issue Type */}
+              <div className="rounded-lg bg-d-muted p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Issue Type</p>
+                <p className="text-sm font-bold text-d-fg">{selectedIssueForResolve.issueType}</p>
+              </div>
+
+              {/* Issue Description */}
+              <div className="rounded-lg bg-d-muted p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Description</p>
+                <p className="text-sm text-d-fg">
+                  {selectedIssueForResolve.description || "User did not provide additional details"}
+                </p>
+              </div>
+
+              {/* Resolution Notes Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-d-fg">
+                  Resolution Notes
+                  <span className="text-red-500 ml-1">*</span>
+                </label>
+                <textarea
+                  value={resolutionNotes}
+                  onChange={(e) => setResolutionNotes(e.target.value)}
+                  placeholder="Enter resolution notes describing how the issue was resolved..."
+                  className="w-full min-h-[120px] p-3 rounded-lg border border-d-border bg-background text-d-fg placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                  disabled={resolvingIssue}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provide details about how the issue was resolved
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={() => {
+                    setResolveSheetOpen(false);
+                    setResolutionNotes("");
+                    setSelectedIssueForResolve(null);
+                    setResolveError(null);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={resolvingIssue}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleResolveIssue}
+                  disabled={!resolutionNotes.trim() || resolvingIssue}
+                  className="flex-1 gap-2 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {resolvingIssue ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Resolving...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      Resolve Issue
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
