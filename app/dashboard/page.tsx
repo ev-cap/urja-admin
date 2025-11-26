@@ -707,25 +707,25 @@ export default function DashboardPage() {
                     <Activity className="h-4 w-4 text-primary" />
                     Additional Information
                   </h4>
-                  <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50 max-h-[400px] overflow-y-auto custom-scrollbar">
-                    <div className="space-y-4">
-                      {Object.entries(selectedLog.meta).map(([key, value], index) => {
+                  <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {Object.entries(selectedLog.meta).map(([key, value]) => {
                         const formattedKey = key
                           .replace(/([A-Z])/g, ' $1')
                           .replace(/^./, str => str.toUpperCase())
                           .trim();
                         
                         return (
-                          <div key={key} className={`pb-4 ${index !== Object.entries(selectedLog.meta).length - 1 ? 'border-b border-border/30' : ''}`}>
+                          <div key={key} className="flex flex-col">
                             <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">{formattedKey}</p>
                             {typeof value === 'object' && value !== null ? (
-                              <div className="bg-background/80 rounded-lg p-3 border border-border/50">
+                              <div className="bg-background/80 rounded-lg p-3 border border-border/50 flex-1">
                                 <pre className="text-xs text-foreground whitespace-pre-wrap break-words font-mono leading-relaxed">
                                   {JSON.stringify(value, null, 2)}
                                 </pre>
                               </div>
                             ) : (
-                              <p className="text-sm text-foreground break-words bg-background/50 p-2 rounded border border-border/30 font-medium">
+                              <p className="text-sm text-foreground break-words bg-background/50 p-2 rounded border border-border/30 font-medium flex-1">
                                 {String(value)}
                               </p>
                             )}

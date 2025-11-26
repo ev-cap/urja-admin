@@ -31,7 +31,7 @@ export default function Sheet({
             } as React.CSSProperties
           }
           className={cn(
-            "fixed -inset-x-4 bottom-4 z-501 mx-auto w-[calc(100vw-32px)] overflow-hidden outline-hidden md:mx-auto md:w-[650px]",
+            "fixed -inset-x-4 bottom-4 z-501 mx-auto w-[calc(100vw-32px)] overflow-hidden outline-hidden md:mx-auto md:w-[1200px]",
             "rounded-3xl bg-white dark:bg-d-sheet",
             className,
           )}

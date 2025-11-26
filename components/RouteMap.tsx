@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, Fragment } from "react";
+import { useEffect, Fragment, useState, useRef } from "react";
 import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -103,6 +103,8 @@ function FitBounds({ routes }: { routes: RouteData[] }) {
 }
 
 export default function RouteMap({ routes }: RouteMapProps) {
+  const [isMounted, setIsMounted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const routeColors = [
     "#3b82f6", // blue
     "#10b981", // green
@@ -114,6 +116,15 @@ export default function RouteMap({ routes }: RouteMapProps) {
     "#f97316", // orange
   ];
 
+  useEffect(() => {
+    // Ensure component is mounted before rendering map
+    // Small delay to ensure DOM is fully ready
+    const timer = setTimeout(() => {
+      setIsMounted(true);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (routes.length === 0) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-muted/30 rounded-lg">
@@ -122,67 +133,79 @@ export default function RouteMap({ routes }: RouteMapProps) {
     );
   }
 
+  if (!isMounted) {
+    return (
+      <div className="h-full w-full flex items-center justify-center bg-muted/30 rounded-lg">
+        <p className="text-muted-foreground text-sm">Loading map...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div 
+        ref={containerRef}
         className="h-full w-full rounded-lg overflow-hidden border border-border" 
         style={{ position: 'relative', minHeight: '400px' }}
       >
         <MapContainer
-        center={[20.5937, 78.9629]} // Center of India
-        zoom={5}
-        style={{ height: "100%", width: "100%", zIndex: 0 }}
-        scrollWheelZoom={true}
-        whenCreated={(map) => {
-          // Ensure map is properly initialized
-          setTimeout(() => {
-            map.invalidateSize();
-          }, 100);
-        }}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+          key="route-map" // Force remount if needed
+          center={[20.5937, 78.9629]} // Center of India
+          zoom={5}
+          style={{ height: "100%", width: "100%", zIndex: 0 }}
+          scrollWheelZoom={true}
+          whenCreated={(map) => {
+            // Ensure map is properly initialized
+            setTimeout(() => {
+              if (map && map.getContainer()) {
+                map.invalidateSize();
+              }
+            }, 100);
+          }}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
 
-        <FitBounds routes={routes} />
+          <FitBounds routes={routes} />
 
-        {routes.map((route, routeIndex) => {
-          const routeId = route._id || `route-${routeIndex}`;
-          const routeAnalysis = route?.apiResponse?.routeAnalyses?.[0];
-          const from = route?.apiResponse?.input?.from;
-          const to = route?.apiResponse?.input?.to;
-          const polyline = routeAnalysis?.route?.routePolyline;
-          const color = routeColors[routeIndex % routeColors.length];
+          {routes.map((route, routeIndex) => {
+            const routeId = route._id || `route-${routeIndex}`;
+            const routeAnalysis = route?.apiResponse?.routeAnalyses?.[0];
+            const from = route?.apiResponse?.input?.from;
+            const to = route?.apiResponse?.input?.to;
+            const polyline = routeAnalysis?.route?.routePolyline;
+            const color = routeColors[routeIndex % routeColors.length];
 
-          let polylinePoints: [number, number][] = [];
+            let polylinePoints: [number, number][] = [];
 
-          if (polyline) {
-            try {
-              const decoded = decode(polyline);
-              polylinePoints = decoded.map((point) => [point[0], point[1]]);
-            } catch (e) {
-              console.error("Error decoding polyline:", e);
+            if (polyline) {
+              try {
+                const decoded = decode(polyline);
+                polylinePoints = decoded.map((point) => [point[0], point[1]]);
+              } catch (e) {
+                console.error("Error decoding polyline:", e);
+              }
             }
-          }
 
-          return (
-            <Fragment key={routeId}>
-              {/* Route Polyline */}
-              {polylinePoints.length > 0 && (
-                <Polyline
-                  key={`${routeId}-polyline`}
-                  positions={polylinePoints}
-                  pathOptions={{
-                    color,
-                    weight: 4,
-                    opacity: 0.7,
-                  }}
-                />
-              )}
-            </Fragment>
-          );
-        })}
+            return (
+              <Fragment key={routeId}>
+                {/* Route Polyline */}
+                {polylinePoints.length > 0 && (
+                  <Polyline
+                    key={`${routeId}-polyline`}
+                    positions={polylinePoints}
+                    pathOptions={{
+                      color,
+                      weight: 4,
+                      opacity: 0.7,
+                    }}
+                  />
+                )}
+              </Fragment>
+            );
+          })}
         </MapContainer>
       </div>
     </>
