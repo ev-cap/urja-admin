@@ -219,7 +219,7 @@ function Text({
         className="absolute left-0 flex items-center"
       >
         <Image 
-          src="/admin_rool_logo.png" 
+          src="/admin_rool_white_logo.png" 
           alt="Admin Logo" 
           width={24} 
           height={24}
