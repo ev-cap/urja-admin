@@ -8,6 +8,7 @@ const NAV_ITEMS: TOC_INTERFACE[] = [
   { name: "API Explorer", value: "/dashboard/api-explorer" },
   { name: "User Management", value: "/dashboard/user-management" },
   { name: "Customer Support", value: "/dashboard/customer-support" },
+  { name: "Search Analytics", value: "/dashboard/search-analytics" },
   { name: "Settings", value: "/dashboard/settings" },
 ];
 

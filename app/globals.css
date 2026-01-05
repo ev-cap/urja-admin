@@ -301,7 +301,7 @@ body {
       rgba(236, 72, 153, 0.7) 100%
     );
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     border: 2px solid rgba(0, 0, 0, 0.05);
     box-shadow: 0 0 10px rgba(99, 102, 241, 0.3),
