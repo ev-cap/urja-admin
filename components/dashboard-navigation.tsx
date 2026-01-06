@@ -19,7 +19,7 @@ export function DashboardNavigation() {
 
   const handleNavChange = (item: TOC_INTERFACE) => {
     if (item.value) {
-      router.push(item.value);
+      router.push(item.value as "/dashboard" | "/dashboard/api-explorer" | "/dashboard/user-management" | "/dashboard/customer-support" | "/dashboard/settings");
     }
   };
 

@@ -255,22 +255,24 @@ export const groupEndpointsByTag = (
   for (const endpoint of endpoints) {
     // Use first tag if available, otherwise extract from path
     let tag = 'Other';
-    
-    if (endpoint.tags && endpoint.tags.length > 0) {
-      tag = endpoint.tags[0];
+
+    const firstTag = endpoint.tags?.[0];
+    if (firstTag) {
+      tag = firstTag;
     } else {
       // Extract first path segment as tag
       const pathSegments = endpoint.path.split('/').filter(Boolean);
-      if (pathSegments.length > 0) {
-        tag = pathSegments[0].charAt(0).toUpperCase() + pathSegments[0].slice(1);
+      const firstSegment = pathSegments[0];
+      if (firstSegment) {
+        tag = firstSegment.charAt(0).toUpperCase() + firstSegment.slice(1);
       }
     }
-    
+
     if (!grouped[tag]) {
       grouped[tag] = [];
     }
-    
-    grouped[tag].push(endpoint);
+
+    grouped[tag]!.push(endpoint);
   }
   
   return grouped;

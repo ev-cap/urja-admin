@@ -78,7 +78,7 @@ function FitBounds({ routes }: { routes: RouteData[] }) {
         try {
           const decoded = decode(routeAnalysis.route.routePolyline);
           // Sample every 20th point for bounds calculation to avoid too many points
-          decoded.forEach((point, index) => {
+          decoded.forEach((point: [number, number], index: number) => {
             if (index % 20 === 0) {
               bounds.push([point[0], point[1]]);
             }
@@ -171,13 +171,13 @@ export default function RouteMap({ routes }: RouteMapProps) {
         zoom={5}
         style={{ height: "100%", width: "100%", zIndex: 0 }}
         scrollWheelZoom={true}
-        whenCreated={(map) => {
+        ref={(mapInstance) => {
           // Ensure map is properly initialized
-          setTimeout(() => {
-            if (map && map.getContainer()) {
-              map.invalidateSize();
-            }
-          }, 100);
+          if (mapInstance) {
+            setTimeout(() => {
+              mapInstance.invalidateSize();
+            }, 100);
+          }
         }}
       >
           {isDarkMode ? (
@@ -207,7 +207,7 @@ export default function RouteMap({ routes }: RouteMapProps) {
             if (polyline) {
               try {
                 const decoded = decode(polyline);
-                polylinePoints = decoded.map((point) => [point[0], point[1]]);
+                polylinePoints = decoded.map((point: [number, number]) => [point[0], point[1]]);
               } catch (e) {
                 console.error("Error decoding polyline:", e);
               }

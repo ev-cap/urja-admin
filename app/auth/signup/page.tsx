@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,8 @@ import { clerkConfig } from "@/lib/clerk/config";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { isLoaded, signUp, setActive, isSignedIn } = useSignUp();
+  const { isLoaded, signUp, setActive } = useSignUp();
+  const { isSignedIn } = useAuth();
   
   const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");

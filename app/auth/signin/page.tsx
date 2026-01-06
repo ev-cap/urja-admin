@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useAuth } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,8 @@ import { clerkConfig } from "@/lib/clerk/config";
 
 export default function SignInPage() {
   const router = useRouter();
-  const { isLoaded, signIn, setActive, isSignedIn } = useSignIn();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { isSignedIn } = useAuth();
   
   const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
@@ -74,9 +75,9 @@ export default function SignInPage() {
       console.log('[SignIn] Sign-in attempt created, preparing phone code factor');
 
       // Prepare the phone code verification
-      const phoneNumberId = signInAttempt.supportedFirstFactors.find(
-        (factor: any) => factor.strategy === 'phone_code' && factor.phoneNumberId
-      )?.phoneNumberId;
+      const phoneNumberId = signInAttempt.supportedFirstFactors?.find(
+        (factor) => factor.strategy === 'phone_code' && 'phoneNumberId' in factor
+      )?.phoneNumberId as string | undefined;
 
       if (!phoneNumberId) {
         console.error('[SignIn] Available factors:', signInAttempt.supportedFirstFactors);

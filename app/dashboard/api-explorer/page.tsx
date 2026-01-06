@@ -42,6 +42,8 @@ import { getManagedToken } from "@/lib/auth/tokenManager";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+const DEFAULT_METHOD_COLOR = { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-500", hover: "hover:bg-blue-500/20" };
+
 const METHOD_COLORS: Record<string, { bg: string; text: string; badge: string; hover: string }> = {
   GET: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", badge: "bg-blue-500", hover: "hover:bg-blue-500/20" },
   POST: { bg: "bg-green-500/10", text: "text-green-600 dark:text-green-400", badge: "bg-green-500", hover: "hover:bg-green-500/20" },
@@ -125,8 +127,9 @@ export default function APIExplorerPage() {
         const grouped = groupEndpointsByTag(parsedEndpoints);
         setGroupedEndpoints(grouped);
         
-        if (Object.keys(grouped).length > 0) {
-          setExpandedGroups(new Set([Object.keys(grouped)[0]]));
+        const groupKeys = Object.keys(grouped);
+        if (groupKeys.length > 0 && groupKeys[0]) {
+          setExpandedGroups(new Set([groupKeys[0]]));
         }
         
         console.log('[APIExplorer] Diagnostics:', { totalRbac, matched, missing });
@@ -195,7 +198,8 @@ export default function APIExplorerPage() {
     setTabs(prev => {
       const filtered = prev.filter(t => t.id !== tabId);
       if (activeTabId === tabId && filtered.length > 0) {
-        setActiveTabId(filtered[filtered.length - 1].id);
+        const lastTab = filtered[filtered.length - 1];
+        if (lastTab) setActiveTabId(lastTab.id);
       } else if (filtered.length === 0) {
         setActiveTabId(null);
       }
@@ -572,7 +576,7 @@ export default function APIExplorerPage() {
                     {expandedGroups.has(group) && (
                       <div className="border-t border-border">
                         {eps.map((ep, idx) => {
-                          const colors = METHOD_COLORS[ep.method] || METHOD_COLORS.GET;
+                          const colors = METHOD_COLORS[ep.method] ?? DEFAULT_METHOD_COLOR;
                           const isInActiveTab = tabs.some(t => t.endpoint.path === ep.path && t.endpoint.method === ep.method);
                           
                           return (
@@ -629,7 +633,7 @@ export default function APIExplorerPage() {
             <div className="flex-none border-b border-border bg-gradient-to-b from-muted/40 to-muted/20 overflow-x-auto custom-scrollbar-thin">
               <div className="flex items-center gap-1 px-4 py-2 min-w-max">
                 {tabs.map(tab => {
-                  const colors = METHOD_COLORS[tab.endpoint.method];
+                  const colors = METHOD_COLORS[tab.endpoint.method] ?? DEFAULT_METHOD_COLOR;
                   const isActive = activeTabId === tab.id;
                   return (
                     <div
@@ -713,7 +717,7 @@ export default function APIExplorerPage() {
               <div className="flex-none border-b border-border bg-card/50 backdrop-blur-sm rounded-t-lg">
                 <div className="flex items-center justify-between px-6 py-3">
                   <div className="flex items-center gap-3">
-                    <Badge className={METHOD_COLORS[activeTab.endpoint.method].badge}>
+                    <Badge className={(METHOD_COLORS[activeTab.endpoint.method] ?? DEFAULT_METHOD_COLOR).badge}>
                       {activeTab.endpoint.method}
                     </Badge>
                     <code className="text-sm font-mono text-muted-foreground">

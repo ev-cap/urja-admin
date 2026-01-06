@@ -20,9 +20,11 @@ interface CountryCodeSelectProps {
   disabled?: boolean;
 }
 
+const DEFAULT_COUNTRY: CountryCode = { code: "+91", country: "IN", flag: "🇮🇳", digits: 10 };
+
 export function CountryCodeSelect({ value, onChange, disabled }: CountryCodeSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const selectedCountry = COUNTRY_CODES.find(c => c.code === value) || COUNTRY_CODES[0];
+  const selectedCountry = COUNTRY_CODES.find(c => c.code === value) ?? DEFAULT_COUNTRY;
 
   return (
     <div className="relative">
