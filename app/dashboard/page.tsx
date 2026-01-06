@@ -323,14 +323,9 @@ export default function DashboardPage() {
           scrollbar-color: rgba(99, 102, 241, 0.5) rgba(15, 23, 42, 0.3);
         }
         
-        /* Hide scrollbar for Plan Route Analytics */
-        .route-analytics-content::-webkit-scrollbar {
-          display: none;
-        }
-        
+        /* Remove scrolling for Plan Route Analytics */
         .route-analytics-content {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+          overflow: visible !important;
         }
         
         /* Hide scrollbar for Recent Activity Logs */
@@ -425,7 +420,7 @@ export default function DashboardPage() {
               Comprehensive analysis of route planning and charging patterns
             </CardDescription>
           </CardHeader>
-          <CardContent className="pl-2 flex-1 overflow-hidden route-analytics-content">
+          <CardContent className="pl-2 flex-1 overflow-visible route-analytics-content">
             {loading || loadingRouteAnalytics ? (
               <div className="h-full space-y-4">
                 {/* Summary Stats Skeletons */}
@@ -440,11 +435,6 @@ export default function DashboardPage() {
                 {/* Map Skeleton */}
                 <div className="h-[400px] w-full rounded-lg overflow-hidden border border-border">
                   <Skeleton className="h-full w-full" />
-                </div>
-                {/* Legend Skeleton */}
-                <div className="flex flex-wrap items-center gap-4 pt-2 border-t">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-4 w-48" />
                 </div>
               </div>
             ) : routeAnalyticsError ? (
@@ -533,17 +523,6 @@ export default function DashboardPage() {
                 {/* Route Map Visualization */}
                 <div className="h-[400px] w-full">
                   <RouteMap routes={routeAnalytics} />
-                </div>
-                
-                {/* Route Legend */}
-                <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-1 bg-blue-500"></div>
-                    <span>Route Paths</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground/70">
-                    Different colors represent different routes across India
-                  </p>
                 </div>
               </div>
             )}
