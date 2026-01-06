@@ -255,11 +255,13 @@ export default function SignInPage() {
                     {countryCode === "+91" ? "Enter 10-digit mobile number" : "Enter 10-digit phone number"}
                   </p>
                 </div>
+                {/* Clerk CAPTCHA widget placeholder - required for bot protection */}
+                <div id="clerk-captcha" data-cl-theme="auto" data-cl-size="flexible" />
               </CardContent>
               <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full" 
+                <Button
+                  type="submit"
+                  className="w-full"
                   disabled={loading || !phone || phone.length !== getCountryCodeDigits(countryCode)}
                 >
                   {loading ? 'Sending...' : 'Send OTP'}
