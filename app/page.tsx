@@ -108,12 +108,12 @@ export default function LandingPage() {
         </div>
 
         {/* Authentication Section */}
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-md mx-auto">
           <Card className="border-2 border-gray-200/80 dark:border-gray-700/50 shadow-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md">
             <CardContent className="p-10 md:p-14">
-              <div className="flex flex-col sm:flex-row gap-8 md:gap-12">
+              <div className="space-y-5">
                 {/* Sign In */}
-                <div className="flex-1 space-y-5">
+                <div className="space-y-5">
                   <div className="text-center mb-6">
                     <CardTitle className="text-2xl md:text-3xl mb-3 font-bold text-gray-900 dark:text-white">
                       Sign In
@@ -130,38 +130,6 @@ export default function LandingPage() {
                     >
                       <span className="flex items-center justify-center gap-2">
                         Sign In
-                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                      </span>
-                    </Button>
-                  </Link>
-                </div>
-
-                {/* Divider */}
-                <div className="hidden sm:flex items-center justify-center">
-                  <div className="w-px h-full bg-gray-300 dark:bg-gray-700" />
-                </div>
-                <div className="sm:hidden">
-                  <div className="h-px w-full bg-gray-300 dark:bg-gray-700" />
-                </div>
-
-                {/* Sign Up */}
-                <div className="flex-1 space-y-5">
-                  <div className="text-center mb-6">
-                    <CardTitle className="text-2xl md:text-3xl mb-3 font-bold text-gray-900 dark:text-white">
-                      Sign Up
-                    </CardTitle>
-                    <CardDescription className="text-base text-gray-600 dark:text-gray-400">
-                      Create new account
-                    </CardDescription>
-                  </div>
-                  
-                  <Link href="/auth/signup" className="block">
-                    <Button 
-                      className="w-full h-14 text-lg font-semibold group bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white transition-all duration-200 shadow-lg hover:shadow-xl" 
-                      size="lg"
-                    >
-                      <span className="flex items-center justify-center gap-2">
-                        Sign Up
                         <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                       </span>
                     </Button>

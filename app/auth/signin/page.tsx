@@ -3,26 +3,32 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useSignIn, useAuth } from "@clerk/nextjs";
+import { useSignIn, useAuth, useSession } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CountryCodeSelect, getCountryCodeDigits } from "@/components/ui/country-code-select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { clerkConfig } from "@/lib/clerk/config";
+import { checkUserExistsAndGetUser } from "@/lib/services/userService";
+import { AlertCircle } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
   const { isLoaded, signIn, setActive } = useSignIn();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, signOut: clerkSignOut } = useAuth();
+  const { session } = useSession();
   
   const [countryCode, setCountryCode] = useState("+91");
   const [phone, setPhone] = useState("");
+  const [formattedPhone, setFormattedPhone] = useState("");
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [permissionErrorOpen, setPermissionErrorOpen] = useState(false);
 
   // Redirect if already signed in
   useEffect(() => {
@@ -53,10 +59,11 @@ export default function SignInPage() {
       }
 
       // Format phone number with selected country code (E.164 format)
-      const formattedPhone = `${countryCode}${cleanPhone}`;
+      const formatted = `${countryCode}${cleanPhone}`;
+      setFormattedPhone(formatted);
       
       console.log('[SignIn] Attempting sign in with phone:', {
-        formatted: formattedPhone,
+        formatted: formatted,
         countryCode,
         number: cleanPhone,
       });
@@ -64,7 +71,7 @@ export default function SignInPage() {
       // Create sign-in with phone number as identifier
       // Note: User must already exist and phone must be enabled as sign-in method in Clerk dashboard
       const signInAttempt = await signIn.create({
-        identifier: formattedPhone,
+        identifier: formatted,
       });
       
       console.log('[SignIn] SignIn object created:', {
@@ -150,12 +157,96 @@ export default function SignInPage() {
         // Set the active session
         await setActive({ session: signInAttempt.createdSessionId });
         
-        // Get JWT token with custom template
-        const session = signInAttempt.createdSessionId;
-        console.log('[SignIn] Session created:', session);
+        // Wait a moment for the session to be available
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Get the session to get the token
+        const currentSession = signInAttempt.createdSessionId;
+        console.log('[SignIn] Session created:', currentSession);
 
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Check user role before redirecting
+        // Note: Role check will also happen in dashboard layout, but we do it here
+        // to prevent unnecessary redirects and provide immediate feedback
+        try {
+          // Wait for session to be available and get token
+          let token: string | null = null;
+          let retries = 0;
+          const maxRetries = 10;
+          
+          while (!token && retries < maxRetries) {
+            try {
+              // Wait a bit for session to be ready
+              await new Promise(resolve => setTimeout(resolve, 300));
+              
+              // Try to get the session from Clerk
+              // After setActive, the session should be available via useSession hook
+              // We need to wait for it to be ready
+              if (session) {
+                token = await session.getToken({ template: clerkConfig.jwtTemplateName });
+              }
+            } catch (tokenError) {
+              console.warn('[SignIn] Waiting for session to be ready...', retries + 1);
+              retries++;
+            }
+          }
+
+          // If we still don't have a token, let the dashboard layout handle the role check
+          if (!token) {
+            console.warn('[SignIn] Could not get token immediately, redirecting to dashboard for role check');
+            router.push('/dashboard');
+            return;
+          }
+
+          // Use the stored formatted phone number
+          const phoneToCheck = formattedPhone;
+          
+          if (!phoneToCheck) {
+            // If no phone stored, let dashboard layout handle it
+            console.warn('[SignIn] Phone number not stored, redirecting to dashboard');
+            router.push('/dashboard');
+            return;
+          }
+
+          console.log('[SignIn] Checking user role for phone:', phoneToCheck.substring(0, 5) + '***');
+
+          // Check user role
+          const result = await checkUserExistsAndGetUser(phoneToCheck, {
+            jwtToken: token,
+            sessionId: currentSession,
+          });
+
+          if (result.exists && result.user) {
+            // Check userRole field (primary) or role field (fallback)
+            const userRole = (result.user.userRole || result.user.role || '').toLowerCase();
+            const isAdmin = userRole.includes('admin') || userRole.includes('super-admin');
+            
+            if (!isAdmin) {
+              console.warn('[SignIn] User does not have admin privileges:', userRole);
+              setPermissionErrorOpen(true);
+              // Sign out the user since they don't have access
+              await clerkSignOut();
+              return;
+            }
+
+            // User has admin privileges, redirect to dashboard
+            console.log('[SignIn] User has admin privileges, redirecting to dashboard');
+            router.push('/dashboard');
+          } else {
+            // User doesn't exist in backend
+            console.warn('[SignIn] User not found in backend');
+            setPermissionErrorOpen(true);
+            await clerkSignOut();
+          }
+        } catch (roleCheckError: any) {
+          console.error('[SignIn] Error checking user role:', roleCheckError);
+          // On error, let dashboard layout handle it, but also show error modal
+          setPermissionErrorOpen(true);
+          try {
+            await clerkSignOut();
+          } catch (signOutError) {
+            console.error('[SignIn] Error signing out:', signOutError);
+          }
+        }
       } else {
         console.error('[SignIn] Sign in not complete:', signInAttempt.status);
         setError('Verification incomplete. Please try again.');
@@ -266,12 +357,6 @@ export default function SignInPage() {
                 >
                   {loading ? 'Sending...' : 'Send OTP'}
                 </Button>
-                <p className="text-sm text-muted-foreground text-center">
-                  Don't have an account?{" "}
-                  <Link href="/auth/signup" className="text-primary hover:underline">
-                    Sign Up
-                  </Link>
-                </p>
               </CardFooter>
             </form>
           ) : (
@@ -331,6 +416,42 @@ export default function SignInPage() {
           )}
         </Card>
       </div>
+
+      {/* Permission Error Dialog */}
+      <Dialog open={permissionErrorOpen} onOpenChange={setPermissionErrorOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <DialogTitle className="text-xl">Access Denied</DialogTitle>
+            </div>
+            <DialogDescription className="text-left pt-2">
+              You do not have the required permission privileges to access the administration dashboard.
+              Only users with <strong>admin</strong> or <strong>super-admin</strong> roles can access this panel.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-start">
+            <Button
+              onClick={async () => {
+                setPermissionErrorOpen(false);
+                // Sign out the user and redirect to home
+                try {
+                  await clerkSignOut();
+                } catch (err) {
+                  console.error('[SignIn] Error signing out:', err);
+                }
+                router.push('/');
+              }}
+              variant="destructive"
+              className="w-full sm:w-auto"
+            >
+              Sign Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

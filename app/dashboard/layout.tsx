@@ -6,6 +6,12 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import { useAuthContext } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
+import { Loader } from "@/components/ui/loader";
 
 export default function DashboardLayout({
   children,
@@ -14,15 +20,81 @@ export default function DashboardLayout({
 }) {
   const { theme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { isAuthenticated, isLoading, userData, signOut } = useAuthContext();
+  const router = useRouter();
+  const [permissionErrorOpen, setPermissionErrorOpen] = useState(false);
+  const [checkingRole, setCheckingRole] = useState(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Check user role when user data is loaded
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      if (userData) {
+        // Check userRole field (primary) or role field (fallback)
+        const userRole = (userData.userRole || userData.role || '').toLowerCase();
+        const isAdmin = userRole.includes('admin') || userRole.includes('super-admin');
+        
+        if (!isAdmin) {
+          console.warn('[DashboardLayout] User does not have admin privileges:', userRole);
+          setPermissionErrorOpen(true);
+        }
+        setCheckingRole(false);
+      } else {
+        // User data not loaded yet, wait for it
+        setCheckingRole(true);
+      }
+    } else if (!isLoading && !isAuthenticated) {
+      // Not authenticated, redirect to sign in
+      router.push('/auth/signin');
+    }
+  }, [isLoading, isAuthenticated, userData, router]);
+
   const currentTheme = mounted ? (resolvedTheme || theme) : "light";
   const logoSrc = currentTheme === "dark" 
     ? "/admin_rool_text_white_logo.png" 
     : "/admin_rool_text_black_logo.png";
+
+  // Show loader while checking authentication and role
+  if (isLoading || checkingRole) {
+    return <Loader />;
+  }
+
+  // Don't render dashboard if user doesn't have permission
+  if (permissionErrorOpen) {
+    return (
+      <Dialog open={permissionErrorOpen} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+                <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+              </div>
+              <DialogTitle className="text-xl">Access Denied</DialogTitle>
+            </div>
+            <DialogDescription className="text-left pt-2">
+              You do not have the required permission privileges to access the administration dashboard.
+              Only users with <strong>admin</strong> or <strong>super-admin</strong> roles can access this panel.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-start">
+            <Button
+              onClick={async () => {
+                await signOut();
+                router.push('/');
+              }}
+              variant="destructive"
+              className="w-full sm:w-auto"
+            >
+              Sign Out
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <SidebarProvider>

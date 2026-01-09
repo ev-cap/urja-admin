@@ -181,7 +181,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUserData(result.user);
 
         // Fetch RBAC permissions based on user role
-        const userRole = result.user.role || result.user.userRole;
+        // Prioritize userRole field over role field
+        const userRole = result.user.userRole || result.user.role;
         if (userRole && !permissions) {
           await fetchPermissions(userRole);
         }
