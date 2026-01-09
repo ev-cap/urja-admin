@@ -32,6 +32,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserMenu } from "@/components/user-menu"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuth"
 
@@ -102,13 +103,19 @@ export function AppSidebar() {
       {isCollapsed && (
         <SidebarHeader className="justify-center">
           <div className="flex items-center justify-center w-full">
-            <button
-              onClick={handleExpand}
-              className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
-              title="Expand sidebar"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleExpand}
+                  className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-sidebar-accent text-sidebar-foreground transition-colors"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right" align="center">
+                Expand sidebar
+              </TooltipContent>
+            </Tooltip>
           </div>
         </SidebarHeader>
       )}
@@ -117,9 +124,16 @@ export function AppSidebar() {
           {!isCollapsed && (
             <>
               <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-              <SidebarGroupAction onClick={handleCollapse} title="Collapse sidebar">
-                <ChevronLeft className="size-4" />
-              </SidebarGroupAction>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SidebarGroupAction onClick={handleCollapse}>
+                    <ChevronLeft className="size-4" />
+                  </SidebarGroupAction>
+                </TooltipTrigger>
+                <TooltipContent side="left" align="center">
+                  Collapse sidebar
+                </TooltipContent>
+              </Tooltip>
             </>
           )}
           <SidebarGroupContent>
