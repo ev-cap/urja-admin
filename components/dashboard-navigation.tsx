@@ -7,6 +7,7 @@ const NAV_ITEMS: TOC_INTERFACE[] = [
   { name: "Dashboard", value: "/dashboard" },
   { name: "API Explorer", value: "/dashboard/api-explorer" },
   { name: "User Management", value: "/dashboard/user-management" },
+  { name: "Credit Consumption", value: "/dashboard/credit-consumption" },
   { name: "Customer Support", value: "/dashboard/customer-support" },
   { name: "Search Analytics", value: "/dashboard/search-analytics" },
   { name: "Settings", value: "/dashboard/settings" },
@@ -20,7 +21,7 @@ export function DashboardNavigation() {
 
   const handleNavChange = (item: TOC_INTERFACE) => {
     if (item.value) {
-      router.push(item.value as "/dashboard" | "/dashboard/api-explorer" | "/dashboard/user-management" | "/dashboard/customer-support" | "/dashboard/settings");
+      router.push(item.value as "/dashboard" | "/dashboard/api-explorer" | "/dashboard/user-management" | "/dashboard/credit-consumption" | "/dashboard/customer-support" | "/dashboard/search-analytics" | "/dashboard/settings");
     }
   };
 
