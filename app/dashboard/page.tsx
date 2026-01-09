@@ -46,6 +46,7 @@ export default function DashboardPage() {
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [activeUsers, setActiveUsers] = useState<number>(0);
   const [totalStations, setTotalStations] = useState<number>(0);
+  const [totalIssues, setTotalIssues] = useState<number>(0);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [routeAnalytics, setRouteAnalytics] = useState<any[]>([]);
@@ -118,12 +119,13 @@ export default function DashboardPage() {
 
       // Check cache first
       const cacheKey = generateCacheKey(`${API_URL}/dashboard-stats`);
-      const cached = apiCache.get<{ totalUsers: number; activeUsers: number; totalStations: number }>(cacheKey);
+      const cached = apiCache.get<{ totalUsers: number; activeUsers: number; totalStations: number; totalIssues: number }>(cacheKey);
       
       if (cached) {
         setTotalUsers(cached.totalUsers);
         setActiveUsers(cached.activeUsers);
         setTotalStations(cached.totalStations);
+        setTotalIssues(cached.totalIssues || 0);
         setLoading(false);
         return;
       }
@@ -138,8 +140,8 @@ export default function DashboardPage() {
         headers['x-jwt-token'] = token;
       }
 
-      // Fetch users and stations in parallel
-      const [usersResponse, stationsResponse] = await Promise.all([
+      // Fetch users, stations, and issues in parallel
+      const [usersResponse, stationsResponse, issuesResponse] = await Promise.all([
         axios.get(`${API_URL}/users`, { headers }).catch(err => {
           console.error('[Dashboard] Error fetching users:', err);
           return { data: { users: [] } };
@@ -147,6 +149,10 @@ export default function DashboardPage() {
         axios.get(`${API_URL}/stations`, { headers }).catch(err => {
           console.error('[Dashboard] Error fetching stations:', err);
           return { data: { stations: [] } };
+        }),
+        axios.get(`${API_URL}/userissues/all`, { headers }).catch(err => {
+          console.error('[Dashboard] Error fetching issues:', err);
+          return { data: { issues: [], count: 0 } };
         }),
       ]);
 
@@ -162,7 +168,11 @@ export default function DashboardPage() {
       const stations = stationsResponse.data?.stations || stationsResponse.data || [];
       const totalStationsCount = Array.isArray(stations) ? stations.length : 0;
 
-      const statsData = { totalUsers: total, activeUsers: active, totalStations: totalStationsCount };
+      // Handle issues response - get count from response or calculate from issues array
+      const issuesData = issuesResponse.data?.issues || [];
+      const issuesCount = issuesResponse.data?.count ?? (Array.isArray(issuesData) ? issuesData.length : 0);
+
+      const statsData = { totalUsers: total, activeUsers: active, totalStations: totalStationsCount, totalIssues: issuesCount };
       
       // Cache the results
       apiCache.set(cacheKey, statsData, DASHBOARD_STATS_CACHE_TTL);
@@ -170,6 +180,7 @@ export default function DashboardPage() {
       setTotalUsers(total);
       setActiveUsers(active);
       setTotalStations(totalStationsCount);
+      setTotalIssues(issuesCount);
     } catch (err) {
       console.error('[Dashboard] Error fetching dashboard stats:', err);
       toast.error('Failed to load dashboard statistics');
@@ -177,6 +188,7 @@ export default function DashboardPage() {
       setTotalUsers(0);
       setActiveUsers(0);
       setTotalStations(0);
+      setTotalIssues(0);
     } finally {
       setLoading(false);
     }
@@ -346,9 +358,9 @@ export default function DashboardPage() {
       color: "text-chart-3",
     },
     {
-      title: "Growth",
-      value: "18.3%",
-      icon: TrendingUp,
+      title: "Total Issues",
+      value: totalIssues.toLocaleString(),
+      icon: AlertCircle,
       color: "text-chart-4",
     },
   ];
