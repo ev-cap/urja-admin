@@ -243,7 +243,7 @@ const Sidebar = React.forwardRef<
               ? "rounded-lg border border-sidebar-border"
               : variant === "inset"
               ? "border-sidebar-border"
-              : ""
+              : "border-r border-sidebar-border"
           )}
         >
           {props.children}
