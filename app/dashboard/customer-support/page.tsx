@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Loader } from "@/components/ui/loader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Sheet from "@/components/ui/native-swipeable-sheets";
+import { useDebounce } from "@/hooks/useDebounce";
+import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import {
   MessageSquare,
   AlertCircle,
@@ -39,6 +41,7 @@ import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const CUSTOMER_SUPPORT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
 interface Issue {
   id: string;
@@ -123,6 +126,7 @@ export default function CustomerSupportPage() {
   const [suggestions, setSuggestions] = useState<Issue[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [activeTab, setActiveTab] = useState<"issues" | "suggestions">("issues");
@@ -143,11 +147,29 @@ export default function CustomerSupportPage() {
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [resolveSuccess, setResolveSuccess] = useState(false);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
+      if (!API_URL) {
+        throw new Error('API_URL is not defined');
+      }
+
+      // Check cache first
+      const issuesCacheKey = generateCacheKey(`${API_URL}/userissues/all`);
+      const suggestionsCacheKey = generateCacheKey(`${API_URL}/userissues/app-suggestions`);
+      
+      const cachedIssues = apiCache.get<Issue[]>(issuesCacheKey);
+      const cachedSuggestions = apiCache.get<Issue[]>(suggestionsCacheKey);
+
+      if (cachedIssues && cachedSuggestions) {
+        setIssues(cachedIssues);
+        setSuggestions(cachedSuggestions);
+        setLoading(false);
+        return;
+      }
+
       const token = await getManagedToken();
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -163,8 +185,13 @@ export default function CustomerSupportPage() {
         axios.get(`${API_URL}/userissues/app-suggestions`, { headers }),
       ]);
 
+      let issuesData: Issue[] = [];
+      let suggestionsData: Issue[] = [];
+
       if (issuesRes.status === "fulfilled") {
-        setIssues(issuesRes.value.data.issues || []);
+        issuesData = issuesRes.value.data.issues || [];
+        setIssues(issuesData);
+        apiCache.set(issuesCacheKey, issuesData, CUSTOMER_SUPPORT_CACHE_TTL);
       } else {
         console.error("[CustomerSupport] Failed to fetch issues:", issuesRes.reason);
         if (axios.isAxiosError(issuesRes.reason) && issuesRes.reason.response?.status === 403) {
@@ -173,7 +200,9 @@ export default function CustomerSupportPage() {
       }
 
       if (suggestionsRes.status === "fulfilled") {
-        setSuggestions(suggestionsRes.value.data.issues || []);
+        suggestionsData = suggestionsRes.value.data.issues || [];
+        setSuggestions(suggestionsData);
+        apiCache.set(suggestionsCacheKey, suggestionsData, CUSTOMER_SUPPORT_CACHE_TTL);
       } else {
         console.warn("[CustomerSupport] Failed to fetch suggestions:", suggestionsRes.reason);
         // Don't set error for suggestions 403 - it's optional data
@@ -202,7 +231,7 @@ export default function CustomerSupportPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -318,9 +347,9 @@ export default function CustomerSupportPage() {
 
   const filteredData = (activeTab === "issues" ? issues : suggestions).filter((item) => {
     const matchesSearch =
-      item.issueType.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.userId.toLowerCase().includes(searchQuery.toLowerCase());
+      item.issueType.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      item.description.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      item.userId.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
 
     const matchesPriority = filterPriority === "all" || item.priority === filterPriority;
     const matchesStatus = filterStatus === "all" || item.status === filterStatus;

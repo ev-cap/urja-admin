@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle } from "lucide-react";
@@ -11,6 +11,8 @@ import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import Sheet from "@/components/ui/native-swipeable-sheets";
 import dynamic from "next/dynamic";
+import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
+import { useManualLazyLoad } from "@/hooks/useLazyLoad";
 
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import("@/components/RouteMap"), {
@@ -33,13 +35,17 @@ interface ActivityLog {
   processed: boolean;
 }
 
+const ACTIVITY_LOGS_PAGE_SIZE = 20;
+const DASHBOARD_STATS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+const ROUTE_ANALYTICS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const ACTIVITY_LOGS_CACHE_TTL = 30 * 1000; // 30 seconds
+
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [activeUsers, setActiveUsers] = useState<number>(0);
   const [totalStations, setTotalStations] = useState<number>(0);
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [routeAnalytics, setRouteAnalytics] = useState<any[]>([]);
@@ -47,39 +53,81 @@ export default function DashboardPage() {
   const [routeAnalyticsError, setRouteAnalyticsError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
-  useEffect(() => {
-    // Check authentication
-    if (!authLoading) {
-      if (!isAuthenticated) {
-        console.warn('[Dashboard] User not authenticated');
-        setError('Please sign in to view dashboard');
-        setLoading(false);
-        return;
-      }
-      fetchDashboardStats();
-      fetchActivityLogs();
-      fetchRouteAnalytics();
+  // Lazy loading for activity logs
+  const fetchActivityLogsPage = useCallback(async (page: number) => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    if (!API_URL) {
+      return { data: [], hasMore: false };
     }
-  }, [isAuthenticated, authLoading]);
 
-  // Set up polling for activity logs (refresh every 30 seconds)
-  useEffect(() => {
-    if (!isAuthenticated || authLoading) return;
+    const cacheKey = generateCacheKey(`${API_URL}/activitylogs`, { page });
+    const cached = apiCache.get<ActivityLog[]>(cacheKey);
+    
+    if (cached) {
+      return { data: cached, hasMore: cached.length === ACTIVITY_LOGS_PAGE_SIZE };
+    }
 
-    const interval = setInterval(() => {
-      fetchActivityLogs();
-    }, 30000); // 30 seconds
+    try {
+      const token = await getManagedToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
 
-    return () => clearInterval(interval);
-  }, [isAuthenticated, authLoading]);
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+        headers['x-jwt-token'] = token;
+      }
 
-  const fetchDashboardStats = async () => {
+      const response = await axios.get(`${API_URL}/activitylogs`, { headers });
+      const activities = response.data?.activities || response.data || [];
+      const allLogs = Array.isArray(activities) ? activities : [];
+      
+      // Paginate: get page of logs
+      const startIndex = (page - 1) * ACTIVITY_LOGS_PAGE_SIZE;
+      const endIndex = startIndex + ACTIVITY_LOGS_PAGE_SIZE;
+      const pageLogs = allLogs.slice(startIndex, endIndex);
+
+      // Cache the page
+      apiCache.set(cacheKey, pageLogs, ACTIVITY_LOGS_CACHE_TTL);
+
+      return {
+        data: pageLogs,
+        hasMore: endIndex < allLogs.length,
+      };
+    } catch (err) {
+      console.error('[Dashboard] Error fetching activity logs:', err);
+      return { data: [], hasMore: false };
+    }
+  }, []);
+
+  const {
+    items: activityLogs,
+    isFetching: loadingActivityLogs,
+    hasMore: hasMoreActivityLogs,
+    loadMore: loadMoreActivityLogs,
+    loadInitial: loadInitialActivityLogs,
+  } = useManualLazyLoad<ActivityLog>(fetchActivityLogsPage, { enabled: isAuthenticated && !authLoading });
+
+  const fetchDashboardStats = useCallback(async () => {
     try {
       setLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       
       if (!API_URL) {
         throw new Error('API_URL is not defined in environment');
+      }
+
+      // Check cache first
+      const cacheKey = generateCacheKey(`${API_URL}/dashboard-stats`);
+      const cached = apiCache.get<{ totalUsers: number; activeUsers: number; totalStations: number }>(cacheKey);
+      
+      if (cached) {
+        setTotalUsers(cached.totalUsers);
+        setActiveUsers(cached.activeUsers);
+        setTotalStations(cached.totalStations);
+        setError(null);
+        setLoading(false);
+        return;
       }
 
       const token = await getManagedToken();
@@ -116,6 +164,11 @@ export default function DashboardPage() {
       const stations = stationsResponse.data?.stations || stationsResponse.data || [];
       const totalStationsCount = Array.isArray(stations) ? stations.length : 0;
 
+      const statsData = { totalUsers: total, activeUsers: active, totalStations: totalStationsCount };
+      
+      // Cache the results
+      apiCache.set(cacheKey, statsData, DASHBOARD_STATS_CACHE_TTL);
+
       setTotalUsers(total);
       setActiveUsers(active);
       setTotalStations(totalStationsCount);
@@ -130,40 +183,9 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchActivityLogs = async () => {
-    try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      
-      if (!API_URL) {
-        return;
-      }
-
-      const token = await getManagedToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-        headers['x-jwt-token'] = token;
-      }
-
-      const response = await axios.get(`${API_URL}/activitylogs`, { headers });
-
-      // Handle response structure - could be { activities: [...] } or [...]
-      const activities = response.data?.activities || response.data || [];
-      const logs = Array.isArray(activities) ? activities.slice(0, 50) : []; // Get latest 50
-
-      setActivityLogs(logs);
-    } catch (err) {
-      console.error('[Dashboard] Error fetching activity logs:', err);
-      // Don't set error state for activity logs to avoid disrupting the dashboard
-    }
-  };
-
-  const fetchRouteAnalytics = async () => {
+  const fetchRouteAnalytics = useCallback(async () => {
     setLoadingRouteAnalytics(true);
     setRouteAnalyticsError(null);
     
@@ -172,6 +194,16 @@ export default function DashboardPage() {
       
       if (!API_URL) {
         throw new Error('API_URL is not defined in environment');
+      }
+
+      // Check cache first
+      const cacheKey = generateCacheKey(`${API_URL}/routes/analytics`);
+      const cached = apiCache.get<any[]>(cacheKey);
+      
+      if (cached) {
+        setRouteAnalytics(cached);
+        setLoadingRouteAnalytics(false);
+        return;
       }
 
       const token = await getManagedToken();
@@ -195,6 +227,9 @@ export default function DashboardPage() {
         sample: routes[0] ? Object.keys(routes[0]) : null,
       });
       
+      // Cache the results
+      apiCache.set(cacheKey, routes, ROUTE_ANALYTICS_CACHE_TTL);
+      
       setRouteAnalytics(routes);
     } catch (err: any) {
       console.error('[Dashboard] Route analytics fetch failed:', err);
@@ -207,7 +242,41 @@ export default function DashboardPage() {
     } finally {
       setLoadingRouteAnalytics(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // Check authentication
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        console.warn('[Dashboard] User not authenticated');
+        setError('Please sign in to view dashboard');
+        setLoading(false);
+        return;
+      }
+      fetchDashboardStats();
+      loadInitialActivityLogs();
+      fetchRouteAnalytics();
+    }
+  }, [isAuthenticated, authLoading, loadInitialActivityLogs, fetchDashboardStats, fetchRouteAnalytics]);
+
+  // Set up polling for activity logs (refresh cache and reload first page every 30 seconds)
+  useEffect(() => {
+    if (!isAuthenticated || authLoading) return;
+
+    const interval = setInterval(() => {
+      // Clear activity logs cache to force refresh
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      if (API_URL) {
+        // Clear all activity log cache entries
+        for (let i = 1; i <= 10; i++) {
+          apiCache.delete(generateCacheKey(`${API_URL}/activitylogs`, { page: i }));
+        }
+      }
+      loadInitialActivityLogs();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, authLoading, loadInitialActivityLogs]);
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -546,7 +615,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="p-4 flex-1 overflow-y-auto activity-logs-content">
             <div className="space-y-2 pr-2">
-              {loading ? (
+              {loading || loadingActivityLogs ? (
                 // Skeleton loaders for activity logs
                 Array.from({ length: 5 }).map((_, index) => (
                   <div
@@ -578,7 +647,8 @@ export default function DashboardPage() {
                   <p className="text-xs mt-1">Activity logs will appear here</p>
                 </div>
               ) : (
-                activityLogs.map((log, index) => {
+                <>
+                  {activityLogs.map((log, index) => {
                   const Icon = getCategoryIcon(log.category);
                   const getCategoryColor = (category: string) => {
                     switch (category) {
@@ -656,7 +726,30 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   );
-                })
+                  })}
+                  {hasMoreActivityLogs && (
+                    <div className="flex justify-center pt-4">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={loadMoreActivityLogs}
+                        disabled={loadingActivityLogs}
+                        className="gap-2"
+                      >
+                        {loadingActivityLogs ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>
+                            Load More
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </CardContent>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import { 
   CreditCard, 
   AlertTriangle, 
@@ -51,6 +52,8 @@ interface CreditsResponse {
   total: number;
 }
 
+const CREDITS_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
+
 export default function CreditConsumptionPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -77,7 +80,7 @@ export default function CreditConsumptionPage() {
     }
   }, [isAuthenticated, authLoading]);
 
-  const fetchCredits = async () => {
+  const fetchCredits = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -85,6 +88,17 @@ export default function CreditConsumptionPage() {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       if (!API_URL) {
         throw new Error('API_URL is not defined in environment');
+      }
+
+      // Check cache first
+      const cacheKey = generateCacheKey(`${API_URL}/credits`);
+      const cached = apiCache.get<CreditsResponse>(cacheKey);
+      
+      if (cached) {
+        setCreditsData(cached);
+        setLoading(false);
+        setRefreshing(false);
+        return;
       }
 
       const token = await getManagedToken();
@@ -98,6 +112,10 @@ export default function CreditConsumptionPage() {
       }
 
       const response = await axios.get<CreditsResponse>(`${API_URL}/credits`, { headers });
+      
+      // Cache the results
+      apiCache.set(cacheKey, response.data, CREDITS_CACHE_TTL);
+      
       setCreditsData(response.data);
     } catch (err: any) {
       console.error('[CreditConsumption] Error fetching credits:', err);
@@ -111,10 +129,15 @@ export default function CreditConsumptionPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    // Clear cache to force refresh
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    if (API_URL) {
+      apiCache.delete(generateCacheKey(`${API_URL}/credits`));
+    }
     await fetchCredits();
   };
 

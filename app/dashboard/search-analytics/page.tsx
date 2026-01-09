@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useDebounce } from "@/hooks/useDebounce";
+import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import {
   Search,
   BarChart3,
@@ -51,6 +53,7 @@ import {
 import dynamic from "next/dynamic";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const SEARCH_ANALYTICS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Dynamic import for map to avoid SSR issues
 const MapContainer = dynamic(
@@ -135,6 +138,7 @@ export default function SearchAnalyticsPage() {
     requestSource: "all",
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,6 +150,21 @@ export default function SearchAnalyticsPage() {
   const fetchAnalytics = useCallback(async () => {
     try {
       setError(null);
+      
+      if (!API_URL) {
+        throw new Error('API_URL is not defined');
+      }
+
+      // Check cache first
+      const cacheKey = generateCacheKey(`${API_URL}/stations-analytics`);
+      const cached = apiCache.get<AnalyticsItem[]>(cacheKey);
+      
+      if (cached) {
+        setAnalytics(cached);
+        setLoading(false);
+        return;
+      }
+
       const token = await getManagedToken();
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -158,11 +177,12 @@ export default function SearchAnalyticsPage() {
 
       const response = await axios.get(`${API_URL}/stations-analytics`, { headers });
       
-      if (response.data?.analytics) {
-        setAnalytics(response.data.analytics);
-      } else {
-        setAnalytics([]);
-      }
+      const analyticsData = response.data?.analytics || [];
+      
+      // Cache the results
+      apiCache.set(cacheKey, analyticsData, SEARCH_ANALYTICS_CACHE_TTL);
+      
+      setAnalytics(analyticsData);
     } catch (err: any) {
       console.error("[SearchAnalytics] Fetch failed:", err);
       if (axios.isAxiosError(err)) {
@@ -205,6 +225,10 @@ export default function SearchAnalyticsPage() {
   useEffect(() => {
     if (!autoRefresh || !isAuthenticated) return;
     const interval = setInterval(() => {
+      // Clear cache to force refresh
+      if (API_URL) {
+        apiCache.delete(generateCacheKey(`${API_URL}/stations-analytics`));
+      }
       fetchAnalytics();
     }, 60000); // 60 seconds
     return () => clearInterval(interval);
@@ -236,12 +260,12 @@ export default function SearchAnalyticsPage() {
       filtered = filtered.filter((item) => item.requestSource === filters.requestSource);
     }
 
-    // Apply search
-    if (searchQuery) {
+    // Apply search (using debounced query)
+    if (debouncedSearchQuery) {
       filtered = filtered.filter(
         (item) =>
-          item.userId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          item.clerkId.toLowerCase().includes(searchQuery.toLowerCase())
+          item.userId.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+          item.clerkId.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
       );
     }
 
@@ -276,7 +300,7 @@ export default function SearchAnalyticsPage() {
 
     setFilteredAnalytics(filtered);
     setCurrentPage(1);
-  }, [analytics, filters, searchQuery, sortField, sortDirection]);
+  }, [analytics, filters, debouncedSearchQuery, sortField, sortDirection]);
 
   // Compute metrics
   const metrics = useMemo<Metrics>(() => {
