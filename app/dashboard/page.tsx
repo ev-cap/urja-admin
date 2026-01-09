@@ -257,7 +257,8 @@ export default function DashboardPage() {
       loadInitialActivityLogs();
       fetchRouteAnalytics();
     }
-  }, [isAuthenticated, authLoading, loadInitialActivityLogs, fetchDashboardStats, fetchRouteAnalytics]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading]);
 
   // Set up polling for activity logs (refresh cache and reload first page every 30 seconds)
   useEffect(() => {
@@ -276,7 +277,8 @@ export default function DashboardPage() {
     }, 30000); // 30 seconds
 
     return () => clearInterval(interval);
-  }, [isAuthenticated, authLoading, loadInitialActivityLogs]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, authLoading]);
 
   const formatTimeAgo = (dateString: string): string => {
     const date = new Date(dateString);
@@ -332,28 +334,24 @@ export default function DashboardPage() {
     {
       title: "Total Users",
       value: totalUsers.toLocaleString(),
-      change: "+12.5%",
       icon: Users,
       color: "text-chart-1",
     },
     {
       title: "Total Active Users",
       value: activeUsers.toLocaleString(),
-      change: "+8.2%",
       icon: ShoppingCart,
       color: "text-chart-2",
     },
     {
       title: "Total Charging Stations",
       value: totalStations.toLocaleString(),
-      change: "+23.1%",
       icon: Zap,
       color: "text-chart-3",
     },
     {
       title: "Growth",
       value: "18.3%",
-      change: "+4.3%",
       icon: TrendingUp,
       color: "text-chart-4",
     },
@@ -466,9 +464,6 @@ export default function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    <span className="text-primary">{stat.change}</span> from last month
-                  </p>
                 </CardContent>
               </Card>
             );
