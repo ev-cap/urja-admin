@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { CountryCodeSelect, getCountryCodeDigits } from "@/components/ui/country-code-select";
 import { clerkConfig } from "@/lib/clerk/config";
+import toast from "react-hot-toast";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -22,7 +23,6 @@ export default function SignUpPage() {
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   // Redirect if already signed in
   useEffect(() => {
@@ -41,13 +41,12 @@ export default function SignUpPage() {
     if (!isLoaded) return;
     
     setLoading(true);
-    setError("");
 
     try {
       // Validate phone number
       const cleanPhone = phone.trim().replace(/\D/g, '');
       if (cleanPhone.length !== getCountryCodeDigits(countryCode)) {
-        setError(`Please enter a valid ${getCountryCodeDigits(countryCode)}-digit phone number`);
+        toast.error(`Please enter a valid ${getCountryCodeDigits(countryCode)}-digit phone number`);
         setLoading(false);
         return;
       }
@@ -77,10 +76,11 @@ export default function SignUpPage() {
       await signUp.preparePhoneNumberVerification();
 
       console.log('[SignUp] OTP sent successfully');
+      toast.success('OTP sent successfully!');
       setVerifying(true);
     } catch (err: any) {
       console.error('[SignUp] Error sending OTP:', err);
-      setError(err.errors?.[0]?.message || 'Failed to send OTP. Please try again.');
+      toast.error(err.errors?.[0]?.message || 'Failed to send OTP. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,6 @@ export default function SignUpPage() {
     if (!isLoaded) return;
     
     setLoading(true);
-    setError("");
 
     try {
       console.log('[SignUp] Verifying OTP code');
@@ -113,15 +112,16 @@ export default function SignUpPage() {
         
         console.log('[SignUp] Session created:', signUpAttempt.createdSessionId);
 
+        toast.success('Account created successfully!');
         // Redirect to dashboard
         router.push('/dashboard');
       } else {
         console.error('[SignUp] Sign up not complete:', signUpAttempt.status);
-        setError('Verification incomplete. Please try again.');
+        toast.error('Verification incomplete. Please try again.');
       }
     } catch (err: any) {
       console.error('[SignUp] Error verifying OTP:', err);
-      setError(err.errors?.[0]?.message || 'Invalid code. Please try again.');
+      toast.error(err.errors?.[0]?.message || 'Invalid code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,6 @@ export default function SignUpPage() {
   const handleBack = () => {
     setVerifying(false);
     setCode("");
-    setError("");
   };
 
   return (
@@ -185,11 +184,6 @@ export default function SignUpPage() {
           {!verifying ? (
             <form onSubmit={handleSendCode}>
               <CardContent className="space-y-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                    {error}
-                  </div>
-                )}
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <div className="flex">
@@ -236,11 +230,6 @@ export default function SignUpPage() {
           ) : (
             <form onSubmit={handleVerifyCode}>
               <CardContent className="space-y-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                    {error}
-                  </div>
-                )}
                 <div className="space-y-2">
                   <Label htmlFor="code">Verification Code</Label>
                   <Input

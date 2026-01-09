@@ -13,6 +13,7 @@ import Sheet from "@/components/ui/native-swipeable-sheets";
 import dynamic from "next/dynamic";
 import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import { useManualLazyLoad } from "@/hooks/useLazyLoad";
+import toast from "react-hot-toast";
 
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import("@/components/RouteMap"), {
@@ -42,7 +43,6 @@ const ACTIVITY_LOGS_CACHE_TTL = 30 * 1000; // 30 seconds
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [totalUsers, setTotalUsers] = useState<number>(0);
   const [activeUsers, setActiveUsers] = useState<number>(0);
   const [totalStations, setTotalStations] = useState<number>(0);
@@ -50,7 +50,6 @@ export default function DashboardPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [routeAnalytics, setRouteAnalytics] = useState<any[]>([]);
   const [loadingRouteAnalytics, setLoadingRouteAnalytics] = useState(false);
-  const [routeAnalyticsError, setRouteAnalyticsError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   // Lazy loading for activity logs
@@ -125,7 +124,6 @@ export default function DashboardPage() {
         setTotalUsers(cached.totalUsers);
         setActiveUsers(cached.activeUsers);
         setTotalStations(cached.totalStations);
-        setError(null);
         setLoading(false);
         return;
       }
@@ -172,10 +170,9 @@ export default function DashboardPage() {
       setTotalUsers(total);
       setActiveUsers(active);
       setTotalStations(totalStationsCount);
-      setError(null);
     } catch (err) {
       console.error('[Dashboard] Error fetching dashboard stats:', err);
-      setError('Failed to load dashboard statistics');
+      toast.error('Failed to load dashboard statistics');
       // Set defaults on error
       setTotalUsers(0);
       setActiveUsers(0);
@@ -187,7 +184,6 @@ export default function DashboardPage() {
 
   const fetchRouteAnalytics = useCallback(async () => {
     setLoadingRouteAnalytics(true);
-    setRouteAnalyticsError(null);
     
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -234,9 +230,9 @@ export default function DashboardPage() {
     } catch (err: any) {
       console.error('[Dashboard] Route analytics fetch failed:', err);
       if (axios.isAxiosError(err)) {
-        setRouteAnalyticsError(err.response?.data?.message || err.message || 'Failed to fetch route analytics');
+        toast.error(err.response?.data?.message || err.message || 'Failed to fetch route analytics');
       } else {
-        setRouteAnalyticsError('An unexpected error occurred');
+        toast.error('An unexpected error occurred');
       }
       setRouteAnalytics([]);
     } finally {
@@ -249,7 +245,7 @@ export default function DashboardPage() {
     if (!authLoading) {
       if (!isAuthenticated) {
         console.warn('[Dashboard] User not authenticated');
-        setError('Please sign in to view dashboard');
+        toast.error('Please sign in to view dashboard');
         setLoading(false);
         return;
       }
@@ -423,18 +419,6 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Error State */}
-      {error && (
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
-          <p className="text-sm font-medium">{error}</p>
-          {!isAuthenticated && (
-            <p className="text-xs mt-2">
-              Please <a href="/auth/signin" className="underline">sign in</a> to access the dashboard.
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {loading ? (
@@ -500,20 +484,6 @@ export default function DashboardPage() {
                 <div className="h-[400px] w-full rounded-lg overflow-hidden border border-border">
                   <Skeleton className="h-full w-full" />
                 </div>
-              </div>
-            ) : routeAnalyticsError ? (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                <AlertCircle className="h-8 w-8 text-destructive" />
-                <p className="text-sm">{routeAnalyticsError}</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchRouteAnalytics}
-                  className="mt-2"
-                >
-                  <Loader2 className="h-4 w-4 mr-2" />
-                  Retry
-                </Button>
               </div>
             ) : routeAnalytics.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">

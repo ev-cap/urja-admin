@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { clerkConfig } from "@/lib/clerk/config";
 import { checkUserExistsAndGetUser } from "@/lib/services/userService";
 import { AlertCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -27,7 +28,6 @@ export default function SignInPage() {
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [permissionErrorOpen, setPermissionErrorOpen] = useState(false);
 
   // Redirect if already signed in
@@ -47,13 +47,12 @@ export default function SignInPage() {
     if (!isLoaded) return;
     
     setLoading(true);
-    setError("");
 
     try {
       // Validate phone number
       const cleanPhone = phone.trim().replace(/\D/g, '');
       if (cleanPhone.length !== getCountryCodeDigits(countryCode)) {
-        setError(`Please enter a valid ${getCountryCodeDigits(countryCode)}-digit phone number`);
+        toast.error(`Please enter a valid ${getCountryCodeDigits(countryCode)}-digit phone number`);
         setLoading(false);
         return;
       }
@@ -97,8 +96,7 @@ export default function SignInPage() {
       });
 
       console.log('[SignIn] OTP sent successfully');
-
-      console.log('[SignIn] OTP sent successfully');
+      toast.success('OTP sent successfully!');
       setVerifying(true);
     } catch (err: any) {
       console.error('[SignIn] Error sending OTP:', err);
@@ -118,13 +116,13 @@ export default function SignInPage() {
         router.push('/dashboard');
         return;
       } else if (errorMessage?.includes('Identifier is invalid')) {
-        setError('⚠️ Clerk Dashboard Configuration Required: Please enable "Phone number" as "Used for sign-in" in Clerk Dashboard → User & Authentication → Email, Phone, Username. See CLERK_FIX_REQUIRED.md for instructions.');
+        toast.error('⚠️ Clerk Dashboard Configuration Required: Please enable "Phone number" as "Used for sign-in" in Clerk Dashboard → User & Authentication → Email, Phone, Username. See CLERK_FIX_REQUIRED.md for instructions.');
       } else if (errorMessage?.includes('not found')) {
-        setError('Account not found. Please sign up first.');
+        toast.error('Account not found. Please sign up first.');
       } else if (errorMessage?.includes('phone')) {
-        setError('Phone authentication error. Check Clerk Dashboard configuration.');
+        toast.error('Phone authentication error. Check Clerk Dashboard configuration.');
       } else {
-        setError(errorMessage || 'Failed to send OTP. Please try again.');
+        toast.error(errorMessage || 'Failed to send OTP. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -140,7 +138,6 @@ export default function SignInPage() {
     if (!isLoaded) return;
     
     setLoading(true);
-    setError("");
 
     try {
       console.log('[SignIn] Verifying OTP code');
@@ -230,6 +227,7 @@ export default function SignInPage() {
 
             // User has admin privileges, redirect to dashboard
             console.log('[SignIn] User has admin privileges, redirecting to dashboard');
+            toast.success('Signed in successfully!');
             router.push('/dashboard');
           } else {
             // User doesn't exist in backend
@@ -249,11 +247,11 @@ export default function SignInPage() {
         }
       } else {
         console.error('[SignIn] Sign in not complete:', signInAttempt.status);
-        setError('Verification incomplete. Please try again.');
+        toast.error('Verification incomplete. Please try again.');
       }
     } catch (err: any) {
       console.error('[SignIn] Error verifying OTP:', err);
-      setError(err.errors?.[0]?.message || 'Invalid code. Please try again.');
+      toast.error(err.errors?.[0]?.message || 'Invalid code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -265,7 +263,6 @@ export default function SignInPage() {
   const handleBack = () => {
     setVerifying(false);
     setCode("");
-    setError("");
   };
 
   return (
@@ -317,11 +314,6 @@ export default function SignInPage() {
           {!verifying ? (
             <form onSubmit={handleSendCode}>
               <CardContent className="space-y-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                    {error}
-                  </div>
-                )}
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <div className="flex">
@@ -362,11 +354,6 @@ export default function SignInPage() {
           ) : (
             <form onSubmit={handleVerifyCode}>
               <CardContent className="space-y-4">
-                {error && (
-                  <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 dark:text-red-400 rounded-md">
-                    {error}
-                  </div>
-                )}
                 <div className="space-y-2">
                   <Label htmlFor="code">Verification Code</Label>
                   <Input

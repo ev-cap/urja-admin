@@ -5,28 +5,20 @@ import { Label } from "@/components/ui/label";
 import { Loader } from "@/components/ui/loader";
 import { useUserData } from "@/hooks/useUserData";
 import { User, Mail, Phone, UserCircle2 } from "lucide-react";
+import toast from "react-hot-toast";
+import { useEffect } from "react";
 
 export default function SettingsPage() {
   const { userData, loading, error } = useUserData();
 
+  useEffect(() => {
+    if (error) {
+      toast.error(error);
+    }
+  }, [error]);
+
   if (loading) {
     return <Loader />;
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your account information
-          </p>
-        </div>
-        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md">
-          <p className="text-sm font-medium">{error}</p>
-        </div>
-      </div>
-    );
   }
 
   return (

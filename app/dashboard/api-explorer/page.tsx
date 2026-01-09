@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import toast from "react-hot-toast";
 import { 
   Search, 
   ChevronDown, 
@@ -71,7 +72,6 @@ interface RequestTab {
 export default function APIExplorerPage() {
   const { permissions, isLoading: authLoading, isAuthenticated } = useAuthContext();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [endpoints, setEndpoints] = useState<ParsedAPIEndpoint[]>([]);
   const [groupedEndpoints, setGroupedEndpoints] = useState<Record<string, ParsedAPIEndpoint[]>>({});
   const [searchQuery, setSearchQuery] = useState("");
@@ -101,13 +101,13 @@ export default function APIExplorerPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
-        setError('Please sign in to use API Explorer');
+        toast.error('Please sign in to use API Explorer');
         setLoading(false);
         return;
       }
 
       if (!permissions) {
-        setError('Loading permissions...');
+        toast.loading('Loading permissions...');
         return;
       }
 
@@ -137,7 +137,7 @@ export default function APIExplorerPage() {
         setLoading(false);
       } catch (err) {
         console.error('[APIExplorer] Error parsing endpoints:', err);
-        setError('Failed to parse API endpoints');
+        toast.error('Failed to parse API endpoints');
         setLoading(false);
       }
     }
@@ -282,9 +282,19 @@ export default function APIExplorerPage() {
       };
 
       updateTab(activeTab.id, { response });
+      if (res.status >= 200 && res.status < 300) {
+        toast.success(`Request completed in ${responseTime}ms`);
+      } else {
+        toast.error(`Request completed with status ${res.status}`);
+      }
       
     } catch (err: any) {
       console.error('[APIExplorer] Request failed:', err);
+      if (axios.isAxiosError(err)) {
+        toast.error(err.response?.data?.message || err.message || 'Request failed');
+      } else {
+        toast.error(err.message || 'Request failed');
+      }
       const endTime = Date.now();
       const responseTime = endTime - startTime;
       
@@ -319,6 +329,7 @@ export default function APIExplorerPage() {
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
+    toast.success('Copied to clipboard');
     setTimeout(() => setCopied(null), 2000);
   };
 

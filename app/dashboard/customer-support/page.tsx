@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import Sheet from "@/components/ui/native-swipeable-sheets";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
+import toast from "react-hot-toast";
 import {
   MessageSquare,
   AlertCircle,
@@ -124,7 +125,6 @@ export default function CustomerSupportPage() {
   const [loading, setLoading] = useState(true);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [suggestions, setSuggestions] = useState<Issue[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [filterPriority, setFilterPriority] = useState<string>("all");
@@ -137,19 +137,15 @@ export default function CustomerSupportPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userBasicInfo, setUserBasicInfo] = useState<UserBasicInfo | null>(null);
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
-  const [userInfoError, setUserInfoError] = useState<string | null>(null);
 
   // Resolve Issue State
   const [resolveSheetOpen, setResolveSheetOpen] = useState(false);
   const [selectedIssueForResolve, setSelectedIssueForResolve] = useState<Issue | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [resolvingIssue, setResolvingIssue] = useState(false);
-  const [resolveError, setResolveError] = useState<string | null>(null);
-  const [resolveSuccess, setResolveSuccess] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    setError(null);
 
     try {
       if (!API_URL) {
@@ -195,7 +191,7 @@ export default function CustomerSupportPage() {
       } else {
         console.error("[CustomerSupport] Failed to fetch issues:", issuesRes.reason);
         if (axios.isAxiosError(issuesRes.reason) && issuesRes.reason.response?.status === 403) {
-          setError("You don't have permission to view customer issues");
+          toast.error("You don't have permission to view customer issues");
         }
       }
 
@@ -219,15 +215,15 @@ export default function CustomerSupportPage() {
         if (issuesIs403 || suggestionsIs403) {
           // At least one endpoint requires permissions
           if (!error) {
-            setError("Some data could not be loaded due to insufficient permissions");
+            toast.error("Some data could not be loaded due to insufficient permissions");
           }
         } else {
-          setError("Failed to fetch customer support data");
+          toast.error("Failed to fetch customer support data");
         }
       }
     } catch (err: any) {
       console.error("[CustomerSupport] Error fetching data:", err);
-      setError(err.message || "An unexpected error occurred");
+      toast.error(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }
@@ -243,7 +239,6 @@ export default function CustomerSupportPage() {
 
   const fetchUserBasicInfo = async (userId: string) => {
     setLoadingUserInfo(true);
-    setUserInfoError(null);
     setUserBasicInfo(null);
 
     try {
@@ -262,9 +257,9 @@ export default function CustomerSupportPage() {
     } catch (err: any) {
       console.error("[CustomerSupport] Error fetching user basic info:", err);
       if (axios.isAxiosError(err)) {
-        setUserInfoError(err.response?.data?.message || err.message || "Failed to fetch user information");
+        toast.error(err.response?.data?.message || err.message || "Failed to fetch user information");
       } else {
-        setUserInfoError("An unexpected error occurred");
+        toast.error("An unexpected error occurred");
       }
     } finally {
       setLoadingUserInfo(false);
@@ -318,19 +313,18 @@ export default function CustomerSupportPage() {
         );
       }
 
-      setResolveSuccess(true);
+      toast.success("Issue resolved successfully!");
       setTimeout(() => {
         setResolveSheetOpen(false);
         setResolutionNotes("");
         setSelectedIssueForResolve(null);
-        setResolveSuccess(false);
-      }, 1500);
+      }, 1000);
     } catch (err: any) {
       console.error("[CustomerSupport] Error resolving issue:", err);
       if (axios.isAxiosError(err)) {
-        setResolveError(err.response?.data?.message || err.message || "Failed to resolve issue");
+        toast.error(err.response?.data?.message || err.message || "Failed to resolve issue");
       } else {
-        setResolveError("An unexpected error occurred");
+        toast.error("An unexpected error occurred");
       }
     } finally {
       setResolvingIssue(false);
@@ -341,8 +335,6 @@ export default function CustomerSupportPage() {
     setSelectedIssueForResolve(issue);
     setResolutionNotes(issue.resolutionNotes || "");
     setResolveSheetOpen(true);
-    setResolveError(null);
-    setResolveSuccess(false);
   };
 
   const filteredData = (activeTab === "issues" ? issues : suggestions).filter((item) => {
@@ -549,14 +541,6 @@ export default function CustomerSupportPage() {
                 </div>
               </div>
             </div>
-
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive">
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                <p className="text-sm">{error}</p>
-              </div>
-            )}
 
             {/* Issues/Suggestions List */}
             <div className="space-y-3 max-h-[calc(100vh-32rem)] overflow-y-auto custom-scrollbar pr-2">
@@ -850,17 +834,6 @@ export default function CustomerSupportPage() {
             </div>
           )}
 
-          {/* Error State */}
-          {userInfoError && !loadingUserInfo && (
-            <div className="flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/20 p-4 border border-red-200 dark:border-red-900">
-              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-900 dark:text-red-300">Error Loading User</p>
-                <p className="text-sm text-red-700 dark:text-red-400 mt-1">{userInfoError}</p>
-              </div>
-            </div>
-          )}
-
           {/* User Info Display */}
           {userBasicInfo && !loadingUserInfo && (
             <div className="space-y-4">
@@ -953,30 +926,8 @@ export default function CustomerSupportPage() {
             </div>
           </div>
 
-          {/* Success State */}
-          {resolveSuccess && (
-            <div className="flex items-center gap-3 rounded-lg bg-green-50 dark:bg-green-950/20 p-4 border border-green-200 dark:border-green-900 animate-in fade-in slide-in-from-top-2 duration-300">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-              <div>
-                <p className="text-sm font-medium text-green-900 dark:text-green-300">Issue Resolved Successfully!</p>
-                <p className="text-sm text-green-700 dark:text-green-400 mt-1">The issue has been marked as resolved.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {resolveError && !resolveSuccess && (
-            <div className="flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/20 p-4 border border-red-200 dark:border-red-900">
-              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-900 dark:text-red-300">Error Resolving Issue</p>
-                <p className="text-sm text-red-700 dark:text-red-400 mt-1">{resolveError}</p>
-              </div>
-            </div>
-          )}
-
           {/* Issue Details */}
-          {selectedIssueForResolve && !resolveSuccess && (
+          {selectedIssueForResolve && (
             <div className="space-y-4">
               {/* Issue Type */}
               <div className="rounded-lg bg-d-muted p-4">

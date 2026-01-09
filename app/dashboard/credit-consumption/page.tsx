@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/loader";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
+import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import Sheet from "@/components/ui/native-swipeable-sheets";
 
@@ -56,7 +57,6 @@ const CREDITS_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
 export default function CreditConsumptionPage() {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [creditsData, setCreditsData] = useState<CreditsResponse | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedUserCredit, setSelectedUserCredit] = useState<UserCredit | null>(null);
@@ -65,14 +65,13 @@ export default function CreditConsumptionPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userBasicInfo, setUserBasicInfo] = useState<any>(null);
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
-  const [userInfoError, setUserInfoError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
         console.warn('[CreditConsumption] User not authenticated');
-        setError('Please sign in to view credit consumption');
+        toast.error('Please sign in to view credit consumption');
         setLoading(false);
         return;
       }
@@ -83,7 +82,6 @@ export default function CreditConsumptionPage() {
   const fetchCredits = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
       
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
       if (!API_URL) {
@@ -120,9 +118,9 @@ export default function CreditConsumptionPage() {
     } catch (err: any) {
       console.error('[CreditConsumption] Error fetching credits:', err);
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || err.message || 'Failed to fetch credit data');
+        toast.error(err.response?.data?.message || err.message || 'Failed to fetch credit data');
       } else {
-        setError('An unexpected error occurred');
+        toast.error('An unexpected error occurred');
       }
       setCreditsData(null);
     } finally {
@@ -231,7 +229,6 @@ export default function CreditConsumptionPage() {
   // Fetch user basic info
   const fetchUserBasicInfo = async (userId: string) => {
     setLoadingUserInfo(true);
-    setUserInfoError(null);
     setUserBasicInfo(null);
 
     try {
@@ -255,9 +252,9 @@ export default function CreditConsumptionPage() {
     } catch (err: any) {
       console.error('[CreditConsumption] Error fetching user basic info:', err);
       if (axios.isAxiosError(err)) {
-        setUserInfoError(err.response?.data?.message || err.message || 'Failed to fetch user information');
+        toast.error(err.response?.data?.message || err.message || 'Failed to fetch user information');
       } else {
-        setUserInfoError('An unexpected error occurred');
+        toast.error('An unexpected error occurred');
       }
     } finally {
       setLoadingUserInfo(false);
@@ -331,7 +328,7 @@ export default function CreditConsumptionPage() {
         </div>
 
         {/* Error State */}
-        {error && (
+        {false && (
           <Card className="border-destructive/50 bg-destructive/10">
             <CardContent className="flex items-center gap-3 p-4">
               <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
@@ -841,17 +838,6 @@ export default function CreditConsumptionPage() {
             <div className="flex flex-col items-center justify-center gap-4 py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-sm text-muted-foreground">Loading user information...</p>
-            </div>
-          )}
-
-          {/* Error State */}
-          {userInfoError && !loadingUserInfo && (
-            <div className="flex items-start gap-3 rounded-lg bg-red-50 dark:bg-red-950/20 p-4 border border-red-200 dark:border-red-900">
-              <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-900 dark:text-red-300">Error Loading User</p>
-                <p className="text-sm text-red-700 dark:text-red-400 mt-1">{userInfoError}</p>
-              </div>
             </div>
           )}
 

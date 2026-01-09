@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useDebounce } from "@/hooks/useDebounce";
 import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
+import toast from "react-hot-toast";
 import {
   Search,
   BarChart3,
@@ -128,7 +129,6 @@ type SortDirection = "asc" | "desc";
 export default function SearchAnalyticsPage() {
   const { isLoading: authLoading, isAuthenticated } = useAuthContext();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [analytics, setAnalytics] = useState<AnalyticsItem[]>([]);
   const [filteredAnalytics, setFilteredAnalytics] = useState<AnalyticsItem[]>([]);
   const [filters, setFilters] = useState<FilterType>({
@@ -149,7 +149,6 @@ export default function SearchAnalyticsPage() {
   // Fetch analytics data
   const fetchAnalytics = useCallback(async () => {
     try {
-      setError(null);
       
       if (!API_URL) {
         throw new Error('API_URL is not defined');
@@ -186,9 +185,9 @@ export default function SearchAnalyticsPage() {
     } catch (err: any) {
       console.error("[SearchAnalytics] Fetch failed:", err);
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || err.message || "Failed to fetch analytics");
+        toast.error(err.response?.data?.message || err.message || "Failed to fetch analytics");
       } else {
-        setError("An unexpected error occurred");
+        toast.error("An unexpected error occurred");
       }
       setAnalytics([]);
     } finally {
@@ -213,7 +212,7 @@ export default function SearchAnalyticsPage() {
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
-        setError("Please sign in to view analytics");
+        toast.error("Please sign in to view analytics");
         setLoading(false);
         return;
       }
@@ -591,15 +590,6 @@ export default function SearchAnalyticsPage() {
           </div>
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <Card className="border-destructive/50 bg-destructive/10">
-            <CardContent className="flex items-center gap-3 p-4">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-              <p className="text-sm text-destructive">{error}</p>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Filters */}
         <Card className="border-2">

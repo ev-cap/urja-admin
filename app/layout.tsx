@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "ROOL Admin Dashboard",
@@ -37,6 +38,7 @@ export default function RootLayout({
           >
             <AuthProvider>
               {children}
+              <Toaster position="top-center" />
             </AuthProvider>
           </ThemeProvider>
         </body>
