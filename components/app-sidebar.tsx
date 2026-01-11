@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import Link from "next/link"
+import { useEffect, useState, useCallback } from "react"
 import {
   LayoutDashboard,
   Code,
@@ -13,7 +14,22 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  type LucideIcon,
 } from "lucide-react"
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable"
 import {
   Sidebar,
   SidebarContent,
@@ -35,8 +51,21 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/hooks/useAuth"
+import {
+  isCustomOrderEnabled,
+  getSidebarOrder,
+  saveSidebarOrder,
+  applyCustomOrder,
+} from "@/lib/utils/sidebarPreferences"
+import { SortableSidebarItem } from "@/components/sortable-sidebar-item"
 
-const menuItems = [
+type MenuItem = {
+  title: string
+  url: string
+  icon: LucideIcon
+}
+
+const defaultMenuItems: MenuItem[] = [
   {
     title: "Dashboard",
     url: "/dashboard",
@@ -77,9 +106,99 @@ const menuItems = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { state, setOpen } = useSidebar()
-  const { signOut } = useAuth()
+  const { signOut, userId } = useAuth()
   const router = useRouter()
   const isCollapsed = state === "collapsed"
+  
+  const [customOrderEnabled, setCustomOrderEnabled] = useState(false)
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(defaultMenuItems)
+
+  // Load preferences function
+  const loadPreferences = useCallback(() => {
+    if (!userId) return
+
+    const enabled = isCustomOrderEnabled(userId)
+    setCustomOrderEnabled(enabled)
+
+    if (enabled) {
+      const customOrder = getSidebarOrder(userId)
+      // Only use custom order if it exists and has items
+      if (customOrder && customOrder.length > 0) {
+        const ordered = applyCustomOrder(defaultMenuItems, customOrder)
+        setMenuItems(ordered)
+      } else {
+        // Start with default order when enabling for the first time or after clearing
+        setMenuItems(defaultMenuItems)
+      }
+    } else {
+      setMenuItems(defaultMenuItems)
+    }
+  }, [userId])
+
+  // Initialize preferences
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
+
+  // Listen for preference changes
+  useEffect(() => {
+    if (!userId) return
+
+    const handlePreferenceChange = (event: CustomEvent<{ userId: string }>) => {
+      if (event.detail.userId === userId) {
+        loadPreferences()
+      }
+    }
+
+    window.addEventListener('sidebarPreferencesChanged', handlePreferenceChange as EventListener)
+    return () => {
+      window.removeEventListener('sidebarPreferencesChanged', handlePreferenceChange as EventListener)
+    }
+  }, [userId, loadPreferences])
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!userId || !customOrderEnabled) return
+
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      setMenuItems((items) => {
+        const oldIndex = items.findIndex((item) => item.title === active.id)
+        const newIndex = items.findIndex((item) => item.title === over.id)
+
+        if (oldIndex === -1 || newIndex === -1) return items
+
+        const newItems = [...items]
+        const [removed] = newItems.splice(oldIndex, 1)
+        if (removed) {
+          // Adjust newIndex if moving down (oldIndex < newIndex)
+          // because removing an item shifts all subsequent items down by 1
+          const adjustedNewIndex = oldIndex < newIndex ? newIndex - 1 : newIndex
+          newItems.splice(adjustedNewIndex, 0, removed)
+
+          // Save new order
+          const order = newItems.map((item) => item.title)
+          saveSidebarOrder(userId, order)
+
+          return newItems
+        }
+        return items
+      })
+    }
+  }
+
 
   const handleCollapse = () => {
     setOpen(false)
@@ -137,21 +256,37 @@ export function AppSidebar() {
             </>
           )}
           <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = pathname === item.url
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={menuItems.map((item) => item.title)}
+                strategy={verticalListSortingStrategy}
+              >
+                <SidebarMenu>
+                  {menuItems.map((item) => {
+                    const isActive = pathname === item.url
+                    return (
+                      <SortableSidebarItem
+                        key={item.title}
+                        id={item.title}
+                        isActive={isActive}
+                        isDraggingEnabled={customOrderEnabled && !isCollapsed}
+                      >
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.title}>
+                          <Link href={item.url}>
+                            <item.icon />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SortableSidebarItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SortableContext>
+            </DndContext>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
