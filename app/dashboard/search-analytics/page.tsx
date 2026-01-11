@@ -40,6 +40,7 @@ import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
 import Sheet from "@/components/ui/native-swipeable-sheets";
+import { UserIdDisplay } from "@/components/ui/user-id-display";
 import {
   LineChart,
   Line,
@@ -1213,8 +1214,8 @@ export default function SearchAnalyticsPage() {
                         <td className="p-3">
                           {new Date(item.timestamp).toLocaleString()}
                         </td>
-                        <td className="p-3 font-mono text-xs">
-                          {item.userId.slice(0, 8)}...
+                        <td className="p-3">
+                          <UserIdDisplay userId={item.userId} variant="inline" textClassName="text-xs" />
                         </td>
                         <td className="p-3">
                           <Badge variant="outline">{item.queryType}</Badge>
@@ -1352,7 +1353,7 @@ export default function SearchAnalyticsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">User ID</p>
-                      <p className="text-sm font-mono font-semibold">{selectedItem.userId}</p>
+                      <UserIdDisplay userId={selectedItem.userId} variant="compact" />
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Clerk ID</p>

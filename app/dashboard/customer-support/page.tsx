@@ -40,6 +40,7 @@ import {
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
+import { UserIdDisplay } from "@/components/ui/user-id-display";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const CUSTOMER_SUPPORT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
@@ -620,16 +621,19 @@ export default function CustomerSupportPage() {
                               <FileText className="h-3 w-3" />
                               <span className="font-mono">{item.id.slice(0, 10)}...</span>
                             </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleUserIdClick(item.userId);
-                              }}
-                              className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer group"
-                            >
-                              <User className="h-3 w-3 group-hover:scale-110 transition-transform" />
-                              <span className="font-mono group-hover:underline">{item.userId.slice(0, 12)}...</span>
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              <UserIdDisplay userId={item.userId} variant="inline" textClassName="text-xs" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUserIdClick(item.userId);
+                                }}
+                                className="hover:text-primary transition-colors cursor-pointer"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </button>
+                            </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               <span>{new Date(item.submittedAt).toLocaleDateString()}</span>
@@ -716,20 +720,22 @@ export default function CustomerSupportPage() {
                                   </p>
                                   <p className="font-mono font-semibold">{item.id}</p>
                                 </div>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUserIdClick(item.userId);
-                                  }}
-                                  className="p-2 rounded-lg bg-muted/50 hover:bg-muted hover:border-primary/50 border border-transparent transition-all text-left group"
-                                >
-                                  <p className="text-muted-foreground flex items-center gap-1">
+                                <div className="p-2 rounded-lg bg-muted/50 hover:bg-muted hover:border-primary/50 border border-transparent transition-all text-left group">
+                                  <p className="text-muted-foreground flex items-center gap-1 mb-1">
                                     <User className="h-3 w-3" />
                                     User ID
-                                    <Eye className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity ml-auto" />
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleUserIdClick(item.userId);
+                                      }}
+                                      className="ml-auto"
+                                    >
+                                      <Eye className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </button>
                                   </p>
-                                  <p className="font-mono font-semibold group-hover:text-primary transition-colors">{item.userId}</p>
-                                </button>
+                                  <UserIdDisplay userId={item.userId} variant="compact" textClassName="font-semibold" />
+                                </div>
                                 <div className="p-2 rounded-lg bg-muted/50">
                                   <p className="text-muted-foreground">Last Updated</p>
                                   <p className="font-semibold">
@@ -844,7 +850,7 @@ export default function CustomerSupportPage() {
                     <User className="h-4 w-4 text-primary" />
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">User ID</p>
                   </div>
-                  <p className="font-mono text-sm font-semibold text-d-fg break-all">{selectedUserId}</p>
+                  <UserIdDisplay userId={selectedUserId} textClassName="text-d-fg" />
                 </div>
               )}
 

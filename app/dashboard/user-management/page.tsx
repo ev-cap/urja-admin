@@ -30,6 +30,7 @@ import {
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
+import { UserIdDisplay } from "@/components/ui/user-id-display";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -373,7 +374,7 @@ export default function UserManagementPage() {
                     <IdCard className="h-3 w-3" />
                     User ID
                   </p>
-                  <p className="font-mono text-sm font-semibold">{userData.id}</p>
+                  <UserIdDisplay userId={userData.id} variant="compact" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground flex items-center gap-1">

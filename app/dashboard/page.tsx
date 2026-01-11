@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import { useManualLazyLoad } from "@/hooks/useLazyLoad";
 import toast from "react-hot-toast";
+import { UserIdDisplay } from "@/components/ui/user-id-display";
 
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import("@/components/RouteMap"), {
@@ -799,7 +800,9 @@ export default function DashboardPage() {
                 </div>
                 <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5 md:col-span-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">User ID</p>
-                  <p className="text-sm font-mono text-foreground break-all bg-muted/50 p-2 rounded border">{selectedLog.userId}</p>
+                  <div className="bg-muted/50 p-2 rounded border">
+                    <UserIdDisplay userId={selectedLog.userId} textClassName="text-foreground" />
+                  </div>
                 </div>
                 <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5 md:col-span-2">
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Created At</p>

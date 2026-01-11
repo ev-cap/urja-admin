@@ -33,6 +33,7 @@ import { getManagedToken } from "@/lib/auth/tokenManager";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import Sheet from "@/components/ui/native-swipeable-sheets";
+import { UserIdDisplay } from "@/components/ui/user-id-display";
 
 interface Credit {
   creditType: string;
@@ -557,9 +558,8 @@ export default function CreditConsumptionPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <p className="font-mono text-sm font-semibold">
-                              User ID: {userCredit.userId}
-                            </p>
+                            <span className="text-sm font-semibold">User ID: </span>
+                            <UserIdDisplay userId={userCredit.userId} variant="inline" />
                             {status === 'critical' && (
                               <Badge variant="destructive" className="text-xs">
                                 Critical
@@ -673,9 +673,7 @@ export default function CreditConsumptionPage() {
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-3">
-                            <p className="font-mono text-sm font-semibold">
-                              {userCredit.userId}
-                            </p>
+                            <UserIdDisplay userId={userCredit.userId} variant="compact" />
                             {status === 'critical' && (
                               <Badge variant="destructive" className="text-xs">
                                 Critical
@@ -798,14 +796,16 @@ export default function CreditConsumptionPage() {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-2xl font-bold text-foreground mb-1">Credit Details</h3>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={(e) => handleUserIdClick(selectedUserCredit.userId, e)}
-                      className="text-sm font-mono text-primary hover:underline bg-primary/10 px-3 py-1 rounded-full border border-primary/30 hover:bg-primary/20 transition-colors flex items-center gap-2"
-                    >
+                    <div className="text-sm bg-primary/10 px-3 py-1 rounded-full border border-primary/30 hover:bg-primary/20 transition-colors flex items-center gap-2">
                       <User className="h-3 w-3" />
-                      {selectedUserCredit.userId}
-                      <Eye className="h-3 w-3" />
-                    </button>
+                      <UserIdDisplay userId={selectedUserCredit.userId} variant="inline" textClassName="text-primary" />
+                      <button
+                        onClick={(e) => handleUserIdClick(selectedUserCredit.userId, e)}
+                        className="hover:underline"
+                      >
+                        <Eye className="h-3 w-3" />
+                      </button>
+                    </div>
                     {(() => {
                       const status = getCreditStatus(selectedUserCredit);
                       if (status === 'critical') {
@@ -962,7 +962,7 @@ export default function CreditConsumptionPage() {
                     <IdCard className="h-4 w-4 text-primary" />
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">User ID</p>
                   </div>
-                  <p className="font-mono text-sm font-semibold text-foreground break-all">{selectedUserId}</p>
+                  <UserIdDisplay userId={selectedUserId} textClassName="text-foreground" />
                 </div>
               )}
 
@@ -1038,7 +1038,9 @@ export default function CreditConsumptionPage() {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-2xl font-bold text-foreground mb-1">Update Credits</h3>
                   <p className="text-sm text-muted-foreground">Add credits for user</p>
-                  <p className="font-mono text-sm text-primary mt-2">{selectedUserForUpdate.userId}</p>
+                  <div className="mt-2">
+                    <UserIdDisplay userId={selectedUserForUpdate.userId} variant="compact" textClassName="text-primary" />
+                  </div>
                 </div>
               </div>
             </div>
