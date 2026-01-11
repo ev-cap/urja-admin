@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Shield,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -100,6 +101,11 @@ const defaultMenuItems: MenuItem[] = [
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
+  },
+  {
+    title: "Role Management",
+    url: "/dashboard/role-management",
+    icon: Shield,
   },
 ]
 

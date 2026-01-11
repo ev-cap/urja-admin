@@ -398,6 +398,62 @@ export const updateUser = async (
 };
 
 /**
+ * Update user role
+ * PUT /users/:userId/role
+ */
+export const updateUserRole = async (
+  userId: string,
+  userRole: string
+): Promise<User> => {
+  console.log('🔵 [UserService] API CALL INITIATED: PUT /users/' + userId + '/role');
+  
+  try {
+    if (!API_URL) {
+      throw new Error('API_URL is not defined in environment');
+    }
+
+    const token = await getManagedToken();
+    if (!token) {
+      throw new Error('Authentication required. Please sign in.');
+    }
+
+    const authHeaders = buildAuthHeaders({ jwtToken: token });
+
+    console.log('[UserService] PUT /users/:userId/role - Request details:', {
+      userId,
+      userRole,
+      url: `${API_URL}/users/${userId}/role`,
+      hasToken: !!token,
+    });
+
+    const response = await axios.put(
+      `${API_URL}/users/${userId}/role`,
+      { userRole },
+      { headers: authHeaders }
+    );
+
+    console.log('✅ [UserService] PUT /users/:userId/role - Role updated:', {
+      userId: response.data?.id,
+      newRole: response.data?.userRole || response.data?.role,
+      status: response.status,
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ [UserService] PUT /users/:userId/role - Failed:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('[UserService] Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+      });
+    }
+    throw error;
+  }
+};
+
+/**
  * Delete user
  */
 export const deleteUser = async (userId: string): Promise<void> => {
@@ -477,12 +533,30 @@ export const getAllUsers = async (sessionId?: string): Promise<User[]> => {
       headers: authHeaders,
     });
 
-    console.log('✅ [UserService] GET /users - Success:', {
-      totalUsers: response.data?.length || 0,
-      status: response.status,
+    // Debug: log raw response structure
+    console.log('[UserService] Raw response.data:', {
+      isArray: Array.isArray(response.data),
+      hasUsers: !!response.data?.users,
+      usersIsArray: Array.isArray(response.data?.users),
+      usersLength: Array.isArray(response.data?.users) ? response.data.users.length : 'N/A',
+      keys: response.data ? Object.keys(response.data) : 'null/undefined',
     });
 
-    return response.data;
+    // Handle response structure: could be { users: [...] } or [...]
+    const usersData = Array.isArray(response.data) 
+      ? response.data 
+      : (response.data?.users && Array.isArray(response.data.users))
+      ? response.data.users
+      : [];
+
+    console.log('✅ [UserService] GET /users - Success:', {
+      totalUsers: usersData.length,
+      status: response.status,
+      responseStructure: Array.isArray(response.data) ? 'array' : 'object',
+      extractedUsersLength: usersData.length,
+    });
+
+    return usersData;
   } catch (error) {
     console.error('❌ [UserService] GET /users - Failed:', error);
     if (axios.isAxiosError(error)) {
