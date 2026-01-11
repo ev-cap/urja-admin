@@ -46,7 +46,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
 import { UserMenu } from "@/components/user-menu"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -300,14 +299,7 @@ export function AppSidebar() {
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
-              <div className="flex items-center gap-1 w-full px-2">
-                <div className="shrink-0">
-                  <ThemeToggle />
-                </div>
-                <div className="flex-1 min-w-0 -ml-1">
-                  <UserMenu />
-                </div>
-              </div>
+              <UserMenu />
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarFooter>
