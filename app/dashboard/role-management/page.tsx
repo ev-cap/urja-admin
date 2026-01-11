@@ -42,12 +42,12 @@ export default function RoleManagementPage() {
   const userRole = (userData?.userRole || userData?.role || "").toLowerCase();
   const isSuperAdmin = userRole === "superadmin";
 
-  // Show modal when page loads and user is superadmin but not unlocked
+  // Show modal when page loads and user is authenticated but not unlocked
   useEffect(() => {
-    if (!authLoading && isAuthenticated && isSuperAdmin && !isUnlocked && showUnlockModal === false) {
+    if (!authLoading && isAuthenticated && !isUnlocked && showUnlockModal === false) {
       setShowUnlockModal(true);
     }
-  }, [authLoading, isAuthenticated, isSuperAdmin, isUnlocked]);
+  }, [authLoading, isAuthenticated, isUnlocked]);
 
   useEffect(() => {
     if (isUnlocked && !loadingUsers && users.length === 0) {
@@ -83,6 +83,11 @@ export default function RoleManagementPage() {
   const handleUnlock = () => {
     setIsUnlocked(true);
     setShowUnlockModal(false);
+    // Check if user is superadmin after unlocking
+    if (!isSuperAdmin) {
+      toast.error("Access denied: Only superadmin users can access this page");
+      return;
+    }
     toast.success("Unlocked");
   };
 
@@ -114,26 +119,6 @@ export default function RoleManagementPage() {
                 <h2 className="text-xl font-semibold">Access Prohibited</h2>
                 <p className="text-muted-foreground mt-2">
                   You must be authenticated to access this page.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!isSuperAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Shield className="h-12 w-12 text-destructive" />
-              <div>
-                <h2 className="text-xl font-semibold">Access Prohibited</h2>
-                <p className="text-muted-foreground mt-2">
-                  Only users with <strong>superadmin</strong> role can access this page.
                 </p>
               </div>
             </div>
@@ -205,6 +190,20 @@ export default function RoleManagementPage() {
             <CardContent className="pt-6">
               <div className="text-center py-12 text-muted-foreground">
                 {showUnlockModal ? "Slide to unlock to view users" : "Content locked - Click to slide to unlock"}
+              </div>
+            </CardContent>
+          </Card>
+        ) : !isSuperAdmin ? (
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <Shield className="h-12 w-12 text-destructive" />
+                <div>
+                  <h2 className="text-xl font-semibold">Access Prohibited</h2>
+                  <p className="text-muted-foreground mt-2">
+                    Only users with <strong>superadmin</strong> role can access this page.
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
