@@ -34,6 +34,20 @@ import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import Sheet from "@/components/ui/native-swipeable-sheets";
 import { UserIdDisplay } from "@/components/ui/user-id-display";
+import {
+  Dialog,
+  DialogHeader,
+  DialogTitle,
+  DialogOverlay,
+  DialogPortal,
+} from "@/components/ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import {
+  WheelPicker,
+  WheelPickerWrapper,
+  type WheelPickerOption,
+} from "@/components/wheel-picker";
+import { ChevronsUpDown, XIcon } from "lucide-react";
 
 interface Credit {
   creditType: string;
@@ -58,6 +72,17 @@ interface CreditsResponse {
 
 const CREDITS_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
 
+const createCreditOptions = (min: number, max: number): WheelPickerOption<number>[] =>
+  Array.from({ length: max - min + 1 }, (_, i) => {
+    const value = i + min;
+    return {
+      label: value.toString(),
+      value: value,
+    };
+  });
+
+const creditOptions = createCreditOptions(100, 1000);
+
 export default function CreditConsumptionPage() {
   const [loading, setLoading] = useState(true);
   const [creditsData, setCreditsData] = useState<CreditsResponse | null>(null);
@@ -72,6 +97,7 @@ export default function CreditConsumptionPage() {
   const [selectedUserForUpdate, setSelectedUserForUpdate] = useState<UserCredit | null>(null);
   const [creditAmount, setCreditAmount] = useState<string>("");
   const [updatingCredits, setUpdatingCredits] = useState(false);
+  const [wheelPickerOpen, setWheelPickerOpen] = useState(false);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -1053,16 +1079,28 @@ export default function CreditConsumptionPage() {
                     <Label htmlFor="creditAmount" className="text-sm font-semibold">
                       Credit Amount
                     </Label>
-                    <Input
-                      id="creditAmount"
-                      type="number"
-                      min="1"
-                      placeholder="Enter credit amount"
-                      value={creditAmount}
-                      onChange={(e) => setCreditAmount(e.target.value)}
-                      disabled={updatingCredits}
-                      className="text-lg"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="creditAmount"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="Enter credit amount"
+                        value={creditAmount}
+                        onChange={(e) => setCreditAmount(e.target.value)}
+                        disabled={updatingCredits}
+                        className="text-lg pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                        onClick={() => setWheelPickerOpen(true)}
+                        disabled={updatingCredits}
+                      >
+                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       This amount will be added to the user's account as subscription credits
                     </p>
@@ -1122,6 +1160,43 @@ export default function CreditConsumptionPage() {
           </div>
         )}
       </Sheet>
+
+      {/* Wheel Picker Dialog */}
+      <Dialog open={wheelPickerOpen} onOpenChange={setWheelPickerOpen}>
+        <DialogPortal>
+          <DialogOverlay className="z-[502] backdrop-blur-md" />
+          <DialogPrimitive.Content
+            className={cn(
+              "fixed left-[50%] top-[50%] z-[503] grid w-full max-w-sm translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg"
+            )}
+          >
+            <DialogHeader>
+              <DialogTitle>Select Credit Amount</DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center py-6">
+              <WheelPickerWrapper>
+                <WheelPicker
+                  options={creditOptions}
+                  value={creditAmount ? parseInt(creditAmount, 10) : 100}
+                  onValueChange={(value) => {
+                    setCreditAmount(value.toString());
+                  }}
+                  infinite
+                />
+              </WheelPickerWrapper>
+            </div>
+            <div className="flex justify-end">
+              <Button onClick={() => setWheelPickerOpen(false)}>
+                Done
+              </Button>
+            </div>
+            <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <XIcon className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      </Dialog>
     </>
   );
 }
