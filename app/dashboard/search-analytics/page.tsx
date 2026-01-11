@@ -32,10 +32,14 @@ import {
   ArrowUpDown,
   Eye,
   X,
+  Layers,
+  Flame,
+  ChevronDown,
 } from "lucide-react";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
+import Sheet from "@/components/ui/native-swipeable-sheets";
 import {
   LineChart,
   Line,
@@ -63,10 +67,6 @@ const MapContainer = dynamic(
 );
 const TileLayer = dynamic(
   () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
-);
-const Marker = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
   { ssr: false }
 );
 const Circle = dynamic(
@@ -143,7 +143,9 @@ export default function SearchAnalyticsPage() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState<AnalyticsItem | null>(null);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [mapView, setMapView] = useState<"circles" | "heatmap">("circles");
   const itemsPerPage = 20;
 
   // Fetch analytics data
@@ -378,6 +380,138 @@ export default function SearchAnalyticsPage() {
     ];
   }, [filteredAnalytics]);
 
+  // Aggregate searches by location for density circles
+  const locationDensityData = useMemo(() => {
+    // Group searches by rounded coordinates (0.01 degree ≈ 1km)
+    const locationMap = new Map<string, { 
+      lat: number; 
+      lng: number; 
+      count: number;
+      avgRadius: number;
+    }>();
+    
+    filteredAnalytics.forEach((item) => {
+      // Round to ~1km precision for clustering
+      const roundedLat = Math.round(item.location.lat * 100) / 100;
+      const roundedLng = Math.round(item.location.lng * 100) / 100;
+      const key = `${roundedLat},${roundedLng}`;
+      
+      if (!locationMap.has(key)) {
+        locationMap.set(key, {
+          lat: roundedLat,
+          lng: roundedLng,
+          count: 0,
+          avgRadius: 0,
+        });
+      }
+      const entry = locationMap.get(key)!;
+      entry.count += 1;
+      entry.avgRadius += item.location.radius;
+    });
+
+    // Calculate average radius and normalize for display
+    const data = Array.from(locationMap.values()).map(entry => ({
+      ...entry,
+      avgRadius: entry.avgRadius / entry.count,
+    }));
+    
+    const maxCount = Math.max(...data.map(d => d.count), 1);
+    const minCount = Math.min(...data.map(d => d.count), 1);
+    
+    return data.map((entry) => {
+      // Calculate circle properties based on search count
+      // Size: larger circles for more searches (min 10000m, max 80000m radius)
+      // Opacity: higher opacity for more searches (min 0.3, max 0.7)
+      const countRatio = maxCount > minCount 
+        ? (entry.count - minCount) / (maxCount - minCount) 
+        : 0.5;
+      
+      // Increased radius for better visibility when zoomed out
+      const circleRadius = 10000 + countRatio * 70000; // 10000 to 80000 meters (10km to 80km)
+      const fillOpacity = 0.3 + countRatio * 0.4; // 0.3 to 0.7
+      
+      return {
+        ...entry,
+        circleRadius,
+        fillOpacity,
+        intensity: countRatio,
+      };
+    });
+  }, [filteredAnalytics]);
+
+  // Heatmap data - prepare data for leaflet.heat
+  const heatmapData = useMemo(() => {
+    // Create points array: [lat, lng, intensity]
+    const points: Array<[number, number, number]> = [];
+    const locationCounts = new Map<string, number>();
+    
+    // Count searches per location
+    filteredAnalytics.forEach((item) => {
+      const key = `${item.location.lat.toFixed(4)},${item.location.lng.toFixed(4)}`;
+      locationCounts.set(key, (locationCounts.get(key) || 0) + 1);
+    });
+    
+    const maxCount = Math.max(...Array.from(locationCounts.values()), 1);
+    
+    // Convert to heatmap format
+    locationCounts.forEach((count, key) => {
+      const [lat, lng] = key.split(",").map(Number);
+      const intensity = count / maxCount; // Normalize to 0-1
+      points.push([lat, lng, intensity]);
+    });
+    
+    return points;
+  }, [filteredAnalytics]);
+
+  // HeatmapLayer component
+  const HeatmapLayerComponent = dynamic(
+    () => {
+      return Promise.all([
+        import("react"),
+        import("react-leaflet")
+      ]).then(([{ useEffect }, { useMap }]) => {
+        return function HeatmapLayer({ data }: { data: Array<[number, number, number]> }) {
+          const map = useMap();
+
+          useEffect(() => {
+            if (typeof window === "undefined" || data.length === 0 || !map) return;
+
+            const L = require("leaflet");
+            require("leaflet.heat");
+
+            // Create heatmap layer
+            const heatmapLayer = (L as any).heatLayer(data, {
+              radius: 25,
+              blur: 15,
+              maxZoom: 17,
+              gradient: {
+                0.0: "blue",
+                0.2: "cyan",
+                0.4: "lime",
+                0.6: "yellow",
+                0.8: "orange",
+                1.0: "red",
+              },
+              max: 1.0,
+              minOpacity: 0.5,
+            });
+
+            heatmapLayer.addTo(map);
+
+            return () => {
+              if (map && map.hasLayer(heatmapLayer)) {
+                map.removeLayer(heatmapLayer);
+              }
+            };
+          }, [map, data]);
+
+          return null;
+        };
+      });
+    },
+    { ssr: false }
+  );
+
   // Insights
   const insights = useMemo(() => {
     const slowSearches = filteredAnalytics.filter((item) => item.resultMeta.responseMs > 5000);
@@ -603,51 +737,63 @@ export default function SearchAnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Query Type</label>
-                <select
-                  value={filters.queryType}
-                  onChange={(e) => setFilters({ ...filters, queryType: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                >
-                  <option value="all">All</option>
-                  <option value="nearby">Nearby</option>
-                  <option value="route">Route</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filters.queryType}
+                    onChange={(e) => setFilters({ ...filters, queryType: e.target.value })}
+                    className="w-full appearance-none px-3 py-2 pr-10 text-sm border rounded-md bg-background cursor-pointer"
+                  >
+                    <option value="all">All</option>
+                    <option value="nearby">Nearby</option>
+                    <option value="route">Route</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Cache Hit</label>
-                <select
-                  value={filters.cacheHit}
-                  onChange={(e) => setFilters({ ...filters, cacheHit: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                >
-                  <option value="all">All</option>
-                  <option value="hit">Hit</option>
-                  <option value="miss">Miss</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filters.cacheHit}
+                    onChange={(e) => setFilters({ ...filters, cacheHit: e.target.value })}
+                    className="w-full appearance-none px-3 py-2 pr-10 text-sm border rounded-md bg-background cursor-pointer"
+                  >
+                    <option value="all">All</option>
+                    <option value="hit">Hit</option>
+                    <option value="miss">Miss</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Google Call</label>
-                <select
-                  value={filters.googleCall}
-                  onChange={(e) => setFilters({ ...filters, googleCall: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                >
-                  <option value="all">All</option>
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filters.googleCall}
+                    onChange={(e) => setFilters({ ...filters, googleCall: e.target.value })}
+                    className="w-full appearance-none px-3 py-2 pr-10 text-sm border rounded-md bg-background cursor-pointer"
+                  >
+                    <option value="all">All</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Request Source</label>
-                <select
-                  value={filters.requestSource}
-                  onChange={(e) => setFilters({ ...filters, requestSource: e.target.value })}
-                  className="w-full px-3 py-2 text-sm border rounded-md bg-background"
-                >
-                  <option value="all">All</option>
-                  <option value="app">App</option>
-                  <option value="web">Web</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={filters.requestSource}
+                    onChange={(e) => setFilters({ ...filters, requestSource: e.target.value })}
+                    className="w-full appearance-none px-3 py-2 pr-10 text-sm border rounded-md bg-background cursor-pointer"
+                  >
+                    <option value="all">All</option>
+                    <option value="app">App</option>
+                    <option value="web">Web</option>
+                  </select>
+                  <ChevronDown className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Search User ID</label>
@@ -873,51 +1019,118 @@ export default function SearchAnalyticsPage() {
         {filteredAnalytics.length > 0 && (
           <Card className="border-2">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <MapPin className="h-5 w-5" />
-                Geographic Insights
-              </CardTitle>
-              <CardDescription>Search locations on map</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Geographic Insights
+                  </CardTitle>
+                  <CardDescription className="mt-1">
+                    {mapView === "circles" 
+                      ? "Circle size and opacity represent number of searches. Larger, more opaque circles indicate higher activity. Color coding: Blue = Low (bottom 33%), Orange = Medium (33-66%), Red = High (top 33%)."
+                      : "Heatmap showing search density. Color intensity indicates number of searches: Blue (low) → Red (high)."
+                    }
+                  </CardDescription>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={mapView === "circles" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMapView("circles")}
+                    className="gap-2"
+                  >
+                    <Layers className="h-4 w-4" />
+                    Circles
+                  </Button>
+                  <Button
+                    variant={mapView === "heatmap" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setMapView("heatmap")}
+                    className="gap-2"
+                  >
+                    <Flame className="h-4 w-4" />
+                    Heatmap
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[500px] w-full rounded-lg overflow-hidden border">
-                {typeof window !== "undefined" && (
-                  <MapContainer
-                    center={[20.5937, 78.9629]} // Center of India
-                    zoom={5}
-                    style={{ height: "100%", width: "100%" }}
-                  >
-                    <TileLayer
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    />
-                    {filteredAnalytics.slice(0, 100).map((item, idx) => (
-                      <div key={item._id}>
-                        <Circle
-                          center={[item.location.lat, item.location.lng]}
-                          radius={item.location.radius}
-                          pathOptions={{
-                            color: item.resultMeta.cacheHit ? "#10b981" : "#ef4444",
-                            fillColor: item.resultMeta.cacheHit ? "#10b981" : "#ef4444",
-                            fillOpacity: 0.2,
-                            weight: 2,
-                          }}
-                        />
-                        <Marker position={[item.location.lat, item.location.lng]}>
-                          <Popup>
-                            <div className="text-sm space-y-1">
-                              <p className="font-semibold">Search #{idx + 1}</p>
-                              <p>Time: {new Date(item.timestamp).toLocaleString()}</p>
-                              <p>Results: {item.resultMeta.count}</p>
-                              <p>Cache: {item.resultMeta.cacheHit ? "Hit" : "Miss"}</p>
-                              <p>Response: {item.resultMeta.responseMs}ms</p>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      </div>
-                    ))}
-                  </MapContainer>
-                )}
+              <div className="relative h-[500px] w-full rounded-lg overflow-hidden border">
+                {/* Circles Map */}
+                <div 
+                  className={cn(
+                    "absolute inset-0 transition-transform duration-300 ease-in-out",
+                    mapView === "circles" ? "translate-x-0" : "-translate-x-full"
+                  )}
+                >
+                  {typeof window !== "undefined" && (
+                    <MapContainer
+                      center={[20.5937, 78.9629]} // Center of India
+                      zoom={5}
+                      style={{ height: "100%", width: "100%" }}
+                      key="circles-map"
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      />
+                      {locationDensityData.map((location, idx) => {
+                        // Color based on intensity: blue (low) to red (high)
+                        const getColor = (intensity: number) => {
+                          if (intensity < 0.33) return "#3b82f6"; // blue
+                          if (intensity < 0.66) return "#f59e0b"; // orange
+                          return "#ef4444"; // red
+                        };
+                        
+                        return (
+                          <Circle
+                            key={`density-${idx}-${location.lat}-${location.lng}`}
+                            center={[location.lat, location.lng]}
+                            radius={location.circleRadius}
+                            pathOptions={{
+                              color: getColor(location.intensity),
+                              fillColor: getColor(location.intensity),
+                              fillOpacity: location.fillOpacity,
+                              weight: 3,
+                            }}
+                          >
+                            <Popup>
+                              <div className="text-sm space-y-1">
+                                <p className="font-semibold">Search Activity Cluster</p>
+                                <p>Location: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</p>
+                                <p>Total Searches: {location.count}</p>
+                                <p>Avg Search Radius: {Math.round(location.avgRadius / 1000)}km</p>
+                              </div>
+                            </Popup>
+                          </Circle>
+                        );
+                      })}
+                    </MapContainer>
+                  )}
+                </div>
+
+                {/* Heatmap Map */}
+                <div 
+                  className={cn(
+                    "absolute inset-0 transition-transform duration-300 ease-in-out",
+                    mapView === "heatmap" ? "translate-x-0" : "translate-x-full"
+                  )}
+                >
+                  {typeof window !== "undefined" && (
+                    <MapContainer
+                      center={[20.5937, 78.9629]} // Center of India
+                      zoom={5}
+                      style={{ height: "100%", width: "100%" }}
+                      key="heatmap-map"
+                    >
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      />
+                      {heatmapData.length > 0 && <HeatmapLayerComponent data={heatmapData} />}
+                    </MapContainer>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1045,7 +1258,10 @@ export default function SearchAnalyticsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setSelectedItem(item)}
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setDetailSheetOpen(true);
+                            }}
                             className="gap-2"
                           >
                             <Eye className="h-4 w-4" />
@@ -1093,105 +1309,157 @@ export default function SearchAnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Detail Drawer */}
-        {selectedItem && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Analytics Details</CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedItem(null)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+        {/* Detail Sheet */}
+        <Sheet
+          open={detailSheetOpen}
+          close={() => {
+            setDetailSheetOpen(false);
+            setSelectedItem(null);
+          }}
+          title="Analytics Details"
+        >
+          {selectedItem && (
+            <div className="flex flex-col gap-6 p-6 pt-12 max-h-[80vh] overflow-y-auto custom-scrollbar">
+              {/* Header */}
+              <div className="relative -m-6 mb-0 p-6 pb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-t-3xl border-b">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 border-2 border-primary/30 shadow-lg">
+                    <BarChart3 className="h-7 w-7 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-2xl font-bold text-foreground mb-1">Analytics Details</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={selectedItem.resultMeta.status === "ok" ? "default" : "destructive"}>
+                        {selectedItem.resultMeta.status}
+                      </Badge>
+                      <Badge variant="outline">{selectedItem.queryType}</Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(selectedItem.timestamp).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              </div>
+
+              {/* Main Content */}
+              <div className="space-y-6">
+                {/* Basic Information */}
+                <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                  <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-primary" />
+                    Basic Information
+                  </h4>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-xs text-muted-foreground">Timestamp</p>
-                      <p className="text-sm font-semibold">
-                        {new Date(selectedItem.timestamp).toLocaleString()}
-                      </p>
+                      <p className="text-xs text-muted-foreground mb-1">User ID</p>
+                      <p className="text-sm font-mono font-semibold">{selectedItem.userId}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">User ID</p>
-                      <p className="text-sm font-mono">{selectedItem.userId}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Clerk ID</p>
+                      <p className="text-sm font-mono font-semibold">{selectedItem.clerkId}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Clerk ID</p>
-                      <p className="text-sm font-mono">{selectedItem.clerkId}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Request Source</p>
+                      <p className="text-xs text-muted-foreground mb-1">Request Source</p>
                       <Badge>{selectedItem.requestSource}</Badge>
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Query Type</p>
+                      <p className="text-xs text-muted-foreground mb-1">Query Type</p>
                       <Badge variant="outline">{selectedItem.queryType}</Badge>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Status</p>
-                      <Badge
-                        variant={selectedItem.resultMeta.status === "ok" ? "default" : "destructive"}
-                      >
-                        {selectedItem.resultMeta.status}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <p className="text-xs text-muted-foreground mb-2">Location</p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="font-semibold">Latitude</p>
-                        <p>{selectedItem.location.lat}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Longitude</p>
-                        <p>{selectedItem.location.lng}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Radius</p>
-                        <p>{selectedItem.location.radius}m</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <p className="text-xs text-muted-foreground mb-2">Result Meta</p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="font-semibold">Count</p>
-                        <p>{selectedItem.resultMeta.count}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Response Time</p>
-                        <p>{selectedItem.resultMeta.responseMs}ms</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Cache Hit</p>
-                        <p>{selectedItem.resultMeta.cacheHit ? "Yes" : "No"}</p>
-                      </div>
-                      <div>
-                        <p className="font-semibold">Google Call</p>
-                        <p>{selectedItem.resultMeta.googleCall ? "Yes" : "No"}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border-t pt-4">
-                    <p className="text-xs text-muted-foreground mb-2">Full JSON</p>
-                    <pre className="text-xs bg-slate-950 p-4 rounded-lg overflow-auto max-h-64 custom-scrollbar">
-                      {JSON.stringify(selectedItem, null, 2)}
-                    </pre>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+
+                {/* Location Information */}
+                <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                  <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-primary" />
+                    Location
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Latitude</p>
+                      <p className="font-semibold">{selectedItem.location.lat}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Longitude</p>
+                      <p className="font-semibold">{selectedItem.location.lng}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Radius</p>
+                      <p className="font-semibold">{selectedItem.location.radius}m ({(selectedItem.location.radius / 1000).toFixed(2)}km)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Result Meta */}
+                <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                  <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                    <Target className="h-4 w-4 text-primary" />
+                    Result Information
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Result Count</p>
+                      <p className="font-semibold text-lg">{selectedItem.resultMeta.count}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Response Time</p>
+                      <p className={cn(
+                        "font-semibold text-lg",
+                        selectedItem.resultMeta.responseMs > 5000 && "text-red-600 dark:text-red-400"
+                      )}>
+                        {selectedItem.resultMeta.responseMs}ms
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Cache Hit</p>
+                      <div className="flex items-center gap-2">
+                        {selectedItem.resultMeta.cacheHit ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            <span className="font-semibold text-green-600 dark:text-green-400">Yes</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 text-red-500" />
+                            <span className="font-semibold text-red-600 dark:text-red-400">No</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Google Call</p>
+                      <div className="flex items-center gap-2">
+                        {selectedItem.resultMeta.googleCall ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 text-orange-500" />
+                            <span className="font-semibold text-orange-600 dark:text-orange-400">Yes</span>
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4 text-gray-400" />
+                            <span className="font-semibold text-muted-foreground">No</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Full JSON */}
+                <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                  <h4 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+                    <Database className="h-4 w-4 text-primary" />
+                    Full JSON Data
+                  </h4>
+                  <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-64 custom-scrollbar border border-border text-foreground font-mono">
+                    <code>{JSON.stringify(selectedItem, null, 2)}</code>
+                  </pre>
+                </div>
+              </div>
+            </div>
+          )}
+        </Sheet>
       </div>
     </>
   );

@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import { 
   CreditCard, 
@@ -65,6 +67,10 @@ export default function CreditConsumptionPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userBasicInfo, setUserBasicInfo] = useState<any>(null);
   const [loadingUserInfo, setLoadingUserInfo] = useState(false);
+  const [updateCreditsSheetOpen, setUpdateCreditsSheetOpen] = useState(false);
+  const [selectedUserForUpdate, setSelectedUserForUpdate] = useState<UserCredit | null>(null);
+  const [creditAmount, setCreditAmount] = useState<string>("");
+  const [updatingCredits, setUpdatingCredits] = useState(false);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -273,6 +279,94 @@ export default function CreditConsumptionPage() {
   const handleCardClick = (userCredit: UserCredit) => {
     setSelectedUserCredit(userCredit);
     setDetailSheetOpen(true);
+  };
+
+  const handleUpdateCredits = (userCredit: UserCredit, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setSelectedUserForUpdate(userCredit);
+    setCreditAmount("");
+    setUpdateCreditsSheetOpen(true);
+  };
+
+  const updateUserCredits = async () => {
+    if (!selectedUserForUpdate || !creditAmount) {
+      toast.error("Please enter a credit amount");
+      return;
+    }
+
+    const amount = parseInt(creditAmount, 10);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid positive number");
+      return;
+    }
+
+    setUpdatingCredits(true);
+
+    try {
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      if (!API_URL) {
+        throw new Error('API_URL is not defined in environment');
+      }
+
+      const token = await getManagedToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+        headers['x-jwt-token'] = token;
+      }
+
+      // Calculate dates: validFrom is now, validUntil is 30 days from now
+      const now = new Date();
+      const validFrom = now.toISOString();
+      const validUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const lastMonthlyCreditDate = now.toISOString();
+
+      const requestBody = {
+        credits: [{
+          creditType: "subscription",
+          creditPoints: amount,
+          validFrom: validFrom,
+          validUntil: validUntil,
+          source: "monthly_recurring",
+          purchasePack: "",
+          transactionId: ""
+        }],
+        lastMonthlyCreditDate: lastMonthlyCreditDate,
+        totalAvailableCredits: amount
+      };
+
+      const response = await axios.put(
+        `${API_URL}/credits/${selectedUserForUpdate.userId}`,
+        requestBody,
+        { headers }
+      );
+
+      // Clear cache to force refresh
+      const cacheKey = generateCacheKey(`${API_URL}/credits`);
+      apiCache.delete(cacheKey);
+
+      toast.success("Credits updated");
+      setUpdateCreditsSheetOpen(false);
+      setSelectedUserForUpdate(null);
+      setCreditAmount("");
+      
+      // Refresh the credits data
+      await fetchCredits();
+    } catch (err: any) {
+      console.error('[CreditConsumption] Error updating credits:', err);
+      if (axios.isAxiosError(err)) {
+        toast.error(err.response?.data?.message || err.message || 'Failed to update credits');
+      } else {
+        toast.error('An unexpected error occurred');
+      }
+    } finally {
+      setUpdatingCredits(false);
+    }
   };
 
   if (authLoading) {
@@ -510,6 +604,15 @@ export default function CreditConsumptionPage() {
                             )}
                           </div>
                         </div>
+                        <Button
+                          onClick={(e) => handleUpdateCredits(userCredit, e)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Update Credits
+                        </Button>
                       </div>
                     </div>
                   );
@@ -650,6 +753,15 @@ export default function CreditConsumptionPage() {
                             )}
                           </div>
                         </div>
+                        <Button
+                          onClick={(e) => handleUpdateCredits(userCredit, e)}
+                          variant="outline"
+                          size="sm"
+                          className="gap-2"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                          Update Credits
+                        </Button>
                       </div>
                     </div>
                   );
@@ -816,7 +928,6 @@ export default function CreditConsumptionPage() {
         close={() => {
           setUserInfoModalOpen(false);
           setUserBasicInfo(null);
-          setUserInfoError(null);
           setSelectedUserId(null);
         }}
         title="User Information"
@@ -904,6 +1015,110 @@ export default function CreditConsumptionPage() {
             </div>
           )}
         </div>
+      </Sheet>
+
+      {/* Update Credits Sheet */}
+      <Sheet
+        open={updateCreditsSheetOpen}
+        close={() => {
+          setUpdateCreditsSheetOpen(false);
+          setSelectedUserForUpdate(null);
+          setCreditAmount("");
+        }}
+        title="Update Credits"
+      >
+        {selectedUserForUpdate && (
+          <div className="flex flex-col gap-6 p-6 pt-12 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            {/* Header */}
+            <div className="relative -m-6 mb-0 p-6 pb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-t-3xl border-b">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 border-2 border-primary/30 shadow-lg">
+                  <Zap className="h-7 w-7 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-2xl font-bold text-foreground mb-1">Update Credits</h3>
+                  <p className="text-sm text-muted-foreground">Add credits for user</p>
+                  <p className="font-mono text-sm text-primary mt-2">{selectedUserForUpdate.userId}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="creditAmount" className="text-sm font-semibold">
+                      Credit Amount
+                    </Label>
+                    <Input
+                      id="creditAmount"
+                      type="number"
+                      min="1"
+                      placeholder="Enter credit amount"
+                      value={creditAmount}
+                      onChange={(e) => setCreditAmount(e.target.value)}
+                      disabled={updatingCredits}
+                      className="text-lg"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      This amount will be added to the user's account as subscription credits
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2 border-t border-border/50">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Credit Details</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Credit Type</p>
+                        <Badge variant="outline">subscription</Badge>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">Source</p>
+                        <p className="text-xs font-semibold capitalize">monthly recurring</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground mb-1">Validity</p>
+                        <p className="text-xs font-semibold">30 days from today</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  onClick={updateUserCredits}
+                  disabled={updatingCredits || !creditAmount || parseInt(creditAmount, 10) <= 0}
+                  className="flex-1 gap-2"
+                >
+                  {updatingCredits ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="h-4 w-4" />
+                      Update Credits
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setUpdateCreditsSheetOpen(false);
+                    setSelectedUserForUpdate(null);
+                    setCreditAmount("");
+                  }}
+                  disabled={updatingCredits}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Sheet>
     </>
   );

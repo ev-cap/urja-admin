@@ -41,9 +41,10 @@ export default function Sheet({
             <div className="absolute top-4 left-1/2 h-1.5 w-12 shrink-0 -translate-x-1/2 cursor-grab rounded-full bg-gray-300 dark:bg-gray-600" />
             <button
               onClick={close}
-              className="absolute top-0 right-0 m-4 flex size-7 cursor-pointer items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              className="absolute top-4 right-4 z-50 flex size-8 cursor-pointer items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-md"
+              type="button"
             >
-              <TbX />
+              <TbX className="size-4" />
             </button>
 
             {children}
