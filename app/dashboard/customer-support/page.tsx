@@ -213,14 +213,11 @@ export default function CustomerSupportPage() {
         const issuesIs403 = axios.isAxiosError(issuesRes.reason) && issuesRes.reason.response?.status === 403;
         const suggestionsIs403 = axios.isAxiosError(suggestionsRes.reason) && suggestionsRes.reason.response?.status === 403;
         
-        if (issuesIs403 || suggestionsIs403) {
-          // At least one endpoint requires permissions
-          if (!error) {
-            toast.error("Some data could not be loaded due to insufficient permissions");
-          }
-        } else {
+        if (!issuesIs403 && !suggestionsIs403) {
+          // Both failed with non-permission errors
           toast.error("Failed to fetch customer support data");
         }
+        // Permission errors are already handled above with specific messages
       }
     } catch (err: any) {
       console.error("[CustomerSupport] Error fetching data:", err);
@@ -277,8 +274,6 @@ export default function CustomerSupportPage() {
     if (!selectedIssueForResolve) return;
 
     setResolvingIssue(true);
-    setResolveError(null);
-    setResolveSuccess(false);
 
     try {
       const token = await getManagedToken();
@@ -816,7 +811,6 @@ export default function CustomerSupportPage() {
         close={() => {
           setUserInfoModalOpen(false);
           setUserBasicInfo(null);
-          setUserInfoError(null);
         }}
         title="User Information"
       >
@@ -915,8 +909,6 @@ export default function CustomerSupportPage() {
           setResolveSheetOpen(false);
           setResolutionNotes("");
           setSelectedIssueForResolve(null);
-          setResolveError(null);
-          setResolveSuccess(false);
         }}
         title="Resolve Issue"
       >
@@ -974,7 +966,6 @@ export default function CustomerSupportPage() {
                     setResolveSheetOpen(false);
                     setResolutionNotes("");
                     setSelectedIssueForResolve(null);
-                    setResolveError(null);
                   }}
                   variant="outline"
                   className="flex-1"

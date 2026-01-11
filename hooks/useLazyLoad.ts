@@ -22,7 +22,7 @@ interface UseLazyLoadReturn {
 export function useLazyLoad<T>(
   fetchFn: (page: number) => Promise<{ data: T[]; hasMore: boolean }>,
   options: UseLazyLoadOptions = {}
-): UseLazyLoadReturn & { items: T[]; sentinelRef: RefObject<HTMLDivElement> } {
+): UseLazyLoadReturn & { items: T[]; sentinelRef: RefObject<HTMLDivElement | null> } {
   const {
     threshold = 200,
     rootMargin = '0px',
@@ -80,7 +80,7 @@ export function useLazyLoad<T>(
     observerRef.current = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && hasMore && !isFetching) {
+        if (entry && entry.isIntersecting && hasMore && !isFetching) {
           loadMore();
         }
       },

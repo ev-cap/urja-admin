@@ -456,9 +456,15 @@ export default function SearchAnalyticsPage() {
     
     // Convert to heatmap format
     locationCounts.forEach((count, key) => {
-      const [lat, lng] = key.split(",").map(Number);
-      const intensity = count / maxCount; // Normalize to 0-1
-      points.push([lat, lng, intensity]);
+      const parts = key.split(",");
+      const lat = Number(parts[0]);
+      const lng = Number(parts[1]);
+      
+      // Validate that both lat and lng are valid numbers
+      if (!isNaN(lat) && !isNaN(lng) && parts.length === 2) {
+        const intensity = count / maxCount; // Normalize to 0-1
+        points.push([lat, lng, intensity]);
+      }
     });
     
     return points;

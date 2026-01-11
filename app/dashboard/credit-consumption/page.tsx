@@ -448,31 +448,6 @@ export default function CreditConsumptionPage() {
           </Button>
         </div>
 
-        {/* Error State */}
-        {false && (
-          <Card className="border-destructive/50 bg-destructive/10">
-            <CardContent className="flex items-center gap-3 p-4">
-              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-destructive">{error}</p>
-                {!isAuthenticated && (
-                  <p className="text-xs text-destructive/80 mt-1">
-                    Please <a href="/auth/signin" className="underline">sign in</a> to access credit consumption data.
-                  </p>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={fetchCredits}
-                className="gap-2"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Summary Stats */}
         {loading ? (
@@ -608,26 +583,30 @@ export default function CreditConsumptionPage() {
                                 {userCredit.totalAvailableCredits}
                               </p>
                             </div>
-                            {userCredit.credits && userCredit.credits.length > 0 && (
-                              <>
-                                <div>
-                                  <p className="text-xs text-muted-foreground mb-1">Credit Points</p>
-                                  <p className={cn(
-                                    "font-semibold",
-                                    userCredit.credits[0].creditPoints < 20 && "text-red-500",
-                                    userCredit.credits[0].creditPoints < 50 && userCredit.credits[0].creditPoints >= 20 && "text-orange-500"
-                                  )}>
-                                    {userCredit.credits[0].creditPoints}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="text-xs text-muted-foreground mb-1">Source</p>
-                                  <p className="font-semibold capitalize text-xs">
-                                    {userCredit.credits[0].source.replace(/_/g, ' ')}
-                                  </p>
-                                </div>
-                              </>
-                            )}
+                            {userCredit.credits && userCredit.credits.length > 0 && (() => {
+                              const credit = userCredit.credits?.[0];
+                              if (!credit) return null;
+                              return (
+                                <>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-1">Credit Points</p>
+                                    <p className={cn(
+                                      "font-semibold",
+                                      credit.creditPoints < 20 && "text-red-500",
+                                      credit.creditPoints < 50 && credit.creditPoints >= 20 && "text-orange-500"
+                                    )}>
+                                      {credit.creditPoints}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground mb-1">Source</p>
+                                    <p className="font-semibold capitalize text-xs">
+                                      {credit.source.replace(/_/g, ' ')}
+                                    </p>
+                                  </div>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                         <Button
@@ -683,7 +662,7 @@ export default function CreditConsumptionPage() {
               <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
                 {creditsData.userCredits.map((userCredit) => {
                   const status = getCreditStatus(userCredit);
-                  const credit = userCredit.credits[0];
+                  const credit = userCredit.credits && userCredit.credits.length > 0 ? userCredit.credits[0] : undefined;
                   
                   return (
                     <div
