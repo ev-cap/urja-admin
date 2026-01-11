@@ -15,6 +15,7 @@ import {
   ChevronRight,
   LogOut,
   Shield,
+  Route,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -95,6 +96,11 @@ const defaultMenuItems: MenuItem[] = [
     title: "Search Analytics",
     url: "/dashboard/search-analytics",
     icon: BarChart3,
+  },
+  {
+    title: "Plan Route Analytics",
+    url: "/dashboard/plan-route-analytics",
+    icon: Route,
   },
   {
     title: "Role Management",
