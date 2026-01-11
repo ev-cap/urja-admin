@@ -14,6 +14,7 @@ import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
 import { useManualLazyLoad } from "@/hooks/useLazyLoad";
 import toast from "react-hot-toast";
 import { UserIdDisplay } from "@/components/ui/user-id-display";
+import { getAllUsers } from "@/lib/services/userService";
 
 // Dynamically import RouteMap to avoid SSR issues with Leaflet
 const RouteMap = dynamic(() => import("@/components/RouteMap"), {
@@ -51,7 +52,7 @@ export default function DashboardPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [routeAnalytics, setRouteAnalytics] = useState<any[]>([]);
   const [loadingRouteAnalytics, setLoadingRouteAnalytics] = useState(false);
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, sessionId } = useAuth();
 
   // Lazy loading for activity logs
   const fetchActivityLogsPage = useCallback(async (page: number) => {
@@ -121,15 +122,15 @@ export default function DashboardPage() {
         return;
       }
 
-      // Let axios interceptor handle auth headers automatically
+      // Use getAllUsers service which properly handles sessionId header
       // Fetch users, stations, and issues in parallel
-      const [usersResponse, stationsResponse, issuesResponse] = await Promise.all([
-        axios.get(`${API_URL}/users`).catch(err => {
+      const [usersData, stationsResponse, issuesResponse] = await Promise.all([
+        getAllUsers(sessionId || undefined).catch(err => {
           console.error('[Dashboard] Error fetching users:', err);
           if (axios.isAxiosError(err) && err.response?.status === 401) {
             console.error('[Dashboard] 401 Unauthorized - Token may be invalid or expired');
           }
-          return { data: { users: [] } };
+          return [];
         }),
         axios.get(`${API_URL}/stations`).catch(err => {
           console.error('[Dashboard] Error fetching stations:', err);
@@ -141,8 +142,8 @@ export default function DashboardPage() {
         }),
       ]);
 
-      // Handle users response structure - could be { users: [...] } or [...]
-      const users = usersResponse.data?.users || usersResponse.data || [];
+      // getAllUsers already returns an array of users
+      const users = Array.isArray(usersData) ? usersData : [];
       
       const total = Array.isArray(users) ? users.length : 0;
       const active = Array.isArray(users) 
@@ -177,7 +178,7 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [sessionId]);
 
   const fetchRouteAnalytics = useCallback(async () => {
     setLoadingRouteAnalytics(true);
