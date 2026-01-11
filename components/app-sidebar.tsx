@@ -98,14 +98,14 @@ const defaultMenuItems: MenuItem[] = [
     icon: BarChart3,
   },
   {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: Settings,
-  },
-  {
     title: "Role Management",
     url: "/dashboard/role-management",
     icon: Shield,
+  },
+  {
+    title: "Settings",
+    url: "/dashboard/settings",
+    icon: Settings,
   },
 ]
 
