@@ -8,7 +8,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import axios from "axios";
-import { getManagedToken } from "@/lib/auth/tokenManager";
 import Sheet from "@/components/ui/native-swipeable-sheets";
 import dynamic from "next/dynamic";
 import { apiCache, generateCacheKey } from "@/lib/cache/apiCache";
@@ -69,17 +68,8 @@ export default function DashboardPage() {
     }
 
     try {
-      const token = await getManagedToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-        headers['x-jwt-token'] = token;
-      }
-
-      const response = await axios.get(`${API_URL}/activitylogs`, { headers });
+      // Let axios interceptor handle auth headers automatically
+      const response = await axios.get(`${API_URL}/activitylogs`);
       const activities = response.data?.activities || response.data || [];
       const allLogs = Array.isArray(activities) ? activities : [];
       
@@ -131,27 +121,21 @@ export default function DashboardPage() {
         return;
       }
 
-      const token = await getManagedToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-        headers['x-jwt-token'] = token;
-      }
-
+      // Let axios interceptor handle auth headers automatically
       // Fetch users, stations, and issues in parallel
       const [usersResponse, stationsResponse, issuesResponse] = await Promise.all([
-        axios.get(`${API_URL}/users`, { headers }).catch(err => {
+        axios.get(`${API_URL}/users`).catch(err => {
           console.error('[Dashboard] Error fetching users:', err);
+          if (axios.isAxiosError(err) && err.response?.status === 401) {
+            console.error('[Dashboard] 401 Unauthorized - Token may be invalid or expired');
+          }
           return { data: { users: [] } };
         }),
-        axios.get(`${API_URL}/stations`, { headers }).catch(err => {
+        axios.get(`${API_URL}/stations`).catch(err => {
           console.error('[Dashboard] Error fetching stations:', err);
           return { data: { stations: [] } };
         }),
-        axios.get(`${API_URL}/userissues/all`, { headers }).catch(err => {
+        axios.get(`${API_URL}/userissues/all`).catch(err => {
           console.error('[Dashboard] Error fetching issues:', err);
           return { data: { issues: [], count: 0 } };
         }),
@@ -215,17 +199,8 @@ export default function DashboardPage() {
         return;
       }
 
-      const token = await getManagedToken();
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-        headers['x-jwt-token'] = token;
-      }
-
-      const response = await axios.get(`${API_URL}/routes/analytics`, { headers });
+      // Let axios interceptor handle auth headers automatically
+      const response = await axios.get(`${API_URL}/routes/analytics`);
       
       // Handle response structure - could be { analytics: [...] } or [...]
       const analytics = response.data?.analytics || response.data;

@@ -43,13 +43,23 @@ export const setupAxiosAuth = () => {
     (response) => response,
     async (error) => {
       if (error.response?.status === 401) {
+        const requestUrl = error.config?.url;
+        const requestHeaders = error.config?.headers;
+        
         console.error('[AxiosAuth] Unauthorized request:', {
-          url: error.config?.url,
+          url: requestUrl,
           status: error.response?.status,
+          hasAuthorizationHeader: !!requestHeaders?.Authorization,
+          hasJwtTokenHeader: !!requestHeaders?.['x-jwt-token'],
+          authorizationHeaderLength: requestHeaders?.Authorization?.length || 0,
+          jwtTokenHeaderLength: requestHeaders?.['x-jwt-token']?.length || 0,
+          responseData: error.response?.data,
         });
         
-        // Optionally redirect to login or refresh token here
-        // For now, just propagate the error
+        // Clear token cache on 401 to force refresh on next request
+        const { clearTokenCache } = await import('./tokenManager');
+        clearTokenCache();
+        console.log('[AxiosAuth] Cleared token cache due to 401 error');
       }
       
       return Promise.reject(error);
