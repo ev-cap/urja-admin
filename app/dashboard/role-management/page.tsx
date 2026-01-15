@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader } from "@/components/ui/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -104,10 +104,6 @@ export default function RoleManagementPage() {
     fetchUsers();
   };
 
-  if (authLoading) {
-    return <Loader />;
-  }
-
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -121,6 +117,46 @@ export default function RoleManagementPage() {
                   You must be authenticated to access this page.
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="space-y-6 pb-8">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-9 w-64" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        {/* Users List Skeleton */}
+        <Card className="border-2">
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="p-4 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-5 w-48" />
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-9 w-24" />
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader } from "@/components/ui/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -477,7 +477,43 @@ export default function APIExplorerPage() {
   }, {} as Record<string, ParsedAPIEndpoint[]>);
 
   if (authLoading || loading) {
-    return <Loader />;
+    return (
+      <div className="h-[calc(100vh-4rem)] flex flex-col overflow-hidden bg-gradient-to-br from-background via-background to-muted/20 container mx-auto max-w-7xl rounded-lg shadow-md">
+        {/* Top Bar Skeleton */}
+        <div className="flex-none border-b border-border bg-card/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-7 w-32" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Sidebar Skeleton */}
+          <div className="w-64 border-r border-border bg-card/30 p-4 space-y-4">
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-8 w-full" />
+              ))}
+            </div>
+          </div>
+
+          {/* Main Panel Skeleton */}
+          <div className="flex-1 p-6 space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-64 w-full rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

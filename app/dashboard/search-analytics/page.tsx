@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { Loader } from "@/components/ui/loader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -653,10 +653,6 @@ export default function SearchAnalyticsPage() {
     }
   };
 
-  if (authLoading || loading) {
-    return <Loader />;
-  }
-
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -665,6 +661,149 @@ export default function SearchAnalyticsPage() {
             <CardTitle>Authentication Required</CardTitle>
             <CardDescription>Please sign in to access Search Analytics</CardDescription>
           </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (authLoading || loading) {
+    return (
+      <div className="space-y-6 pb-8">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-64" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-32" />
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+        </div>
+
+        {/* Filters Skeleton */}
+        <Card className="border-2">
+          <CardHeader>
+            <Skeleton className="h-6 w-24" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* KPI Cards Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="border-2">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Charts Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="border-2">
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-32 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full" />
+            </CardContent>
+          </Card>
+          <Card className="border-2">
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-32 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full" />
+            </CardContent>
+          </Card>
+          <Card className="border-2 lg:col-span-2">
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-4 w-32 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Map Skeleton */}
+        <Card className="border-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-4 w-96" />
+              </div>
+              <div className="flex gap-2">
+                <Skeleton className="h-9 w-24" />
+                <Skeleton className="h-9 w-28" />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[500px] w-full rounded-lg" />
+          </CardContent>
+        </Card>
+
+        {/* Table Skeleton */}
+        <Card className="border-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-6 w-40" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* Table Header */}
+              <div className="grid grid-cols-11 gap-4 pb-3 border-b">
+                {Array.from({ length: 11 }).map((_, i) => (
+                  <Skeleton key={i} className="h-4 w-full" />
+                ))}
+              </div>
+              {/* Table Rows */}
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-11 gap-4 py-3 border-b">
+                  {Array.from({ length: 11 }).map((_, j) => (
+                    <Skeleton key={j} className="h-4 w-full" />
+                  ))}
+                </div>
+              ))}
+            </div>
+            {/* Pagination Skeleton */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <Skeleton className="h-4 w-48" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-9 w-20" />
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </div>
     );

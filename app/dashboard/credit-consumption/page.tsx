@@ -27,7 +27,6 @@ import {
   IdCard
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { Loader } from "@/components/ui/loader";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import toast from "react-hot-toast";
@@ -397,7 +396,60 @@ export default function CreditConsumptionPage() {
   };
 
   if (authLoading) {
-    return <Loader />;
+    return (
+      <div className="space-y-6 pb-8">
+        {/* Header Skeleton */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <div className="space-y-2">
+              <Skeleton className="h-9 w-64" />
+              <Skeleton className="h-5 w-96" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-24" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="border-2">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Credits List Skeleton */}
+        <Card className="border-2">
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="p-4 rounded-lg border">
+                  <Skeleton className="h-6 w-32 mb-2" />
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
