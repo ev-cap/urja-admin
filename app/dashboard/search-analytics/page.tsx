@@ -150,6 +150,8 @@ export default function SearchAnalyticsPage() {
   const [mapView, setMapView] = useState<"circles" | "heatmap">("circles");
   const [mapMounted, setMapMounted] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [address, setAddress] = useState<string | null>(null);
+  const [addressLoading, setAddressLoading] = useState(false);
   const itemsPerPage = 20;
 
   // Fetch analytics data
@@ -680,6 +682,37 @@ export default function SearchAnalyticsPage() {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredAnalytics.slice(start, start + itemsPerPage);
   }, [filteredAnalytics, currentPage]);
+
+  // Fetch address from geocode API via proxy
+  const fetchAddress = useCallback(async (lat: number, lon: number) => {
+    setAddressLoading(true);
+    setAddress(null);
+    try {
+      const response = await axios.get(`/api/geocode?lat=${lat}&lon=${lon}`);
+      if (response.data && response.data.display_name) {
+        setAddress(response.data.display_name);
+      } else if (response.data && response.data.error) {
+        setAddress(`Error: ${response.data.error}`);
+      } else {
+        setAddress("Address not available");
+      }
+    } catch (err: any) {
+      console.error("[SearchAnalytics] Address fetch failed:", err);
+      const errorMessage = err.response?.data?.error || err.response?.data?.details || err.message || "Failed to fetch address";
+      setAddress(`Error: ${errorMessage}`);
+    } finally {
+      setAddressLoading(false);
+    }
+  }, []);
+
+  // Fetch address when detail sheet opens
+  useEffect(() => {
+    if (selectedItem && detailSheetOpen) {
+      fetchAddress(selectedItem.location.lat, selectedItem.location.lng);
+    } else {
+      setAddress(null);
+    }
+  }, [selectedItem, detailSheetOpen, fetchAddress]);
 
   // Export to CSV
   const exportToCSV = useCallback(() => {
@@ -1560,6 +1593,7 @@ export default function SearchAnalyticsPage() {
           close={() => {
             setDetailSheetOpen(false);
             setSelectedItem(null);
+            setAddress(null);
           }}
           title="Analytics Details"
         >
@@ -1628,6 +1662,14 @@ export default function SearchAnalyticsPage() {
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Longitude</p>
                       <p className="font-semibold">{selectedItem.location.lng}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-muted-foreground mb-1">Address</p>
+                      {addressLoading ? (
+                        <p className="text-sm text-muted-foreground italic">Loading address...</p>
+                      ) : (
+                        <p className="font-semibold">{address || "—"}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Radius</p>
