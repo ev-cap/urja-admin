@@ -24,6 +24,7 @@ import {
   SlideToUnlockHandle,
 } from "@/components/ui/slide-to-unlock";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
+import { Loader } from "@/components/ui/loader";
 import { UpdateRoleSheet } from "./UpdateRoleSheet";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
