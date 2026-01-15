@@ -347,9 +347,9 @@ export default function CustomerSupportPage() {
 
   const stats = {
     total: issues.length,
-    high: issues.filter((i) => i.priority === "high").length,
-    medium: issues.filter((i) => i.priority === "medium").length,
-    low: issues.filter((i) => i.priority === "low").length,
+    high: issues.filter((i) => i.priority === "high" && i.status !== "resolved" && i.status !== "closed").length,
+    medium: issues.filter((i) => i.priority === "medium" && i.status !== "resolved" && i.status !== "closed").length,
+    low: issues.filter((i) => i.priority === "low" && i.status !== "resolved" && i.status !== "closed").length,
     resolved: issues.filter((i) => i.status === "resolved").length,
     suggestions: suggestions.length,
   };
