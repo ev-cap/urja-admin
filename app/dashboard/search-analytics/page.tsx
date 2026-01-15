@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -146,7 +146,10 @@ export default function SearchAnalyticsPage() {
   const [selectedItem, setSelectedItem] = useState<AnalyticsItem | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [refreshCountdown, setRefreshCountdown] = useState(15);
   const [mapView, setMapView] = useState<"circles" | "heatmap">("circles");
+  const [mapMounted, setMapMounted] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 20;
 
   // Fetch analytics data
@@ -212,6 +215,43 @@ export default function SearchAnalyticsPage() {
     }
   }, []);
 
+  // Ensure map container is mounted before rendering map
+  useEffect(() => {
+    if (typeof window === "undefined" || !filteredAnalytics.length) {
+      setMapMounted(false);
+      return;
+    }
+
+    // Unmount previous map first when switching views
+    setMapMounted(false);
+    
+    let retryCount = 0;
+    const maxRetries = 10;
+    
+    // Use multiple checks to ensure container is ready
+    const checkAndMount = () => {
+      if (mapContainerRef.current && mapContainerRef.current.offsetParent !== null) {
+        // Container exists and is visible
+        setMapMounted(true);
+      } else if (retryCount < maxRetries) {
+        // Retry after a short delay
+        retryCount++;
+        setTimeout(checkAndMount, 100);
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    const rafId = requestAnimationFrame(() => {
+      // Additional delay to ensure container is fully ready
+      setTimeout(checkAndMount, 300);
+    });
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      setMapMounted(false);
+    };
+  }, [filteredAnalytics.length, mapView]);
+
   useEffect(() => {
     if (!authLoading) {
       if (!isAuthenticated) {
@@ -225,15 +265,38 @@ export default function SearchAnalyticsPage() {
 
   // Auto-refresh
   useEffect(() => {
-    if (!autoRefresh || !isAuthenticated) return;
-    const interval = setInterval(() => {
+    if (!autoRefresh || !isAuthenticated) {
+      setRefreshCountdown(15);
+      return;
+    }
+    
+    // Reset countdown when auto-refresh is enabled
+    setRefreshCountdown(15);
+    
+    // Countdown timer
+    const countdownInterval = setInterval(() => {
+      setRefreshCountdown((prev) => {
+        if (prev <= 1) {
+          return 15; // Reset to 15 when it reaches 0
+        }
+        return prev - 1;
+      });
+    }, 1000); // Update every second
+    
+    // Refresh interval
+    const refreshInterval = setInterval(() => {
       // Clear cache to force refresh
       if (API_URL) {
         apiCache.delete(generateCacheKey(`${API_URL}/stations-analytics`));
       }
       fetchAnalytics();
-    }, 60000); // 60 seconds
-    return () => clearInterval(interval);
+      setRefreshCountdown(15); // Reset countdown after refresh
+    }, 15000); // 15 seconds
+    
+    return () => {
+      clearInterval(countdownInterval);
+      clearInterval(refreshInterval);
+    };
   }, [autoRefresh, isAuthenticated, fetchAnalytics]);
 
   // Filter analytics
@@ -336,6 +399,28 @@ export default function SearchAnalyticsPage() {
       googleApiCalls: (googleCalls / filteredAnalytics.length) * 100,
       avgResponseTime: totalResponseTime / filteredAnalytics.length,
       avgStationsReturned: totalStations / filteredAnalytics.length,
+    };
+  }, [filteredAnalytics]);
+
+  // Calculate searches for last month and last week
+  const timeBasedSearches = useMemo(() => {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    const lastWeekSearches = filteredAnalytics.filter((item) => {
+      const itemDate = new Date(item.timestamp);
+      return itemDate >= oneWeekAgo;
+    }).length;
+
+    const lastMonthSearches = filteredAnalytics.filter((item) => {
+      const itemDate = new Date(item.timestamp);
+      return itemDate >= oneMonthAgo;
+    }).length;
+
+    return {
+      lastWeek: lastWeekSearches,
+      lastMonth: lastMonthSearches,
     };
   }, [filteredAnalytics]);
 
@@ -704,7 +789,22 @@ export default function SearchAnalyticsPage() {
 
         {/* KPI Cards Skeleton */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
+          <Card className="border-2 md:col-span-2 lg:col-span-2">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-24" />
+                  <div className="grid grid-cols-3 gap-4">
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-16" />
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+                </div>
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+            </CardContent>
+          </Card>
+          {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="border-2">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -850,6 +950,11 @@ export default function SearchAnalyticsPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {autoRefresh && (
+              <span className="text-sm text-muted-foreground">
+                {refreshCountdown}s
+              </span>
+            )}
             <Button
               variant={autoRefresh ? "default" : "outline"}
               size="sm"
@@ -959,26 +1064,27 @@ export default function SearchAnalyticsPage() {
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <Card className="border-2">
+          <Card className="border-2 md:col-span-2 lg:col-span-2">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Searches</p>
-                  <p className="text-2xl font-bold mt-1">{metrics.totalSearches}</p>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xs text-muted-foreground mb-2">Total Searches</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Total</p>
+                      <p className="text-2xl font-bold">{metrics.totalSearches}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Last Month</p>
+                      <p className="text-2xl font-bold">{timeBasedSearches.lastMonth}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Last Week</p>
+                      <p className="text-2xl font-bold">{timeBasedSearches.lastWeek}</p>
+                    </div>
+                  </div>
                 </div>
-                <Search className="h-8 w-8 text-primary/50" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Unique Users</p>
-                  <p className="text-2xl font-bold mt-1">{metrics.uniqueUsers}</p>
-                </div>
-                <Users className="h-8 w-8 text-blue-500/50" />
+                <Search className="h-8 w-8 text-primary/50 flex-shrink-0 ml-2" />
               </div>
             </CardContent>
           </Card>
@@ -1201,82 +1307,75 @@ export default function SearchAnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="relative h-[500px] w-full rounded-lg overflow-hidden border">
-                {/* Circles Map */}
-                <div 
-                  className={cn(
-                    "absolute inset-0 transition-transform duration-300 ease-in-out",
-                    mapView === "circles" ? "translate-x-0" : "-translate-x-full"
-                  )}
-                >
-                  {typeof window !== "undefined" && (
-                    <MapContainer
-                      center={[20.5937, 78.9629]} // Center of India
-                      zoom={5}
-                      style={{ height: "100%", width: "100%" }}
-                      key="circles-map"
-                    >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
-                      {locationDensityData.map((location, idx) => {
-                        // Color based on intensity: blue (low) to red (high)
-                        const getColor = (intensity: number) => {
-                          if (intensity < 0.33) return "#3b82f6"; // blue
-                          if (intensity < 0.66) return "#f59e0b"; // orange
-                          return "#ef4444"; // red
-                        };
-                        
-                        return (
-                          <Circle
-                            key={`density-${idx}-${location.lat}-${location.lng}`}
-                            center={[location.lat, location.lng]}
-                            radius={location.circleRadius}
-                            pathOptions={{
-                              color: getColor(location.intensity),
-                              fillColor: getColor(location.intensity),
-                              fillOpacity: location.fillOpacity,
-                              weight: 3,
-                            }}
-                          >
-                            <Popup>
-                              <div className="text-sm space-y-1">
-                                <p className="font-semibold">Search Activity Cluster</p>
-                                <p>Location: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</p>
-                                <p>Total Searches: {location.count}</p>
-                                <p>Avg Search Radius: {Math.round(location.avgRadius / 1000)}km</p>
-                              </div>
-                            </Popup>
-                          </Circle>
-                        );
-                      })}
-                    </MapContainer>
-                  )}
-                </div>
+              <div 
+                ref={mapContainerRef} 
+                className="relative h-[500px] w-full rounded-lg overflow-hidden border"
+                id="map-container"
+              >
+                {!mapMounted && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
+                    <div className="text-sm text-muted-foreground">Loading map...</div>
+                  </div>
+                )}
+                {typeof window !== "undefined" && mapMounted && mapContainerRef.current && mapView === "circles" && (
+                  <MapContainer
+                    center={[20.5937, 78.9629]} // Center of India
+                    zoom={5}
+                    style={{ height: "100%", width: "100%" }}
+                    key={`circles-map-${Date.now()}`}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    {locationDensityData.map((location, idx) => {
+                      // Color based on intensity: blue (low) to red (high)
+                      const getColor = (intensity: number) => {
+                        if (intensity < 0.33) return "#3b82f6"; // blue
+                        if (intensity < 0.66) return "#f59e0b"; // orange
+                        return "#ef4444"; // red
+                      };
+                      
+                      return (
+                        <Circle
+                          key={`density-${idx}-${location.lat}-${location.lng}`}
+                          center={[location.lat, location.lng]}
+                          radius={location.circleRadius}
+                          pathOptions={{
+                            color: getColor(location.intensity),
+                            fillColor: getColor(location.intensity),
+                            fillOpacity: location.fillOpacity,
+                            weight: 3,
+                          }}
+                        >
+                          <Popup>
+                            <div className="text-sm space-y-1">
+                              <p className="font-semibold">Search Activity Cluster</p>
+                              <p>Location: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}</p>
+                              <p>Total Searches: {location.count}</p>
+                              <p>Avg Search Radius: {Math.round(location.avgRadius / 1000)}km</p>
+                            </div>
+                          </Popup>
+                        </Circle>
+                      );
+                    })}
+                  </MapContainer>
+                )}
 
-                {/* Heatmap Map */}
-                <div 
-                  className={cn(
-                    "absolute inset-0 transition-transform duration-300 ease-in-out",
-                    mapView === "heatmap" ? "translate-x-0" : "translate-x-full"
-                  )}
-                >
-                  {typeof window !== "undefined" && (
-                    <MapContainer
-                      center={[20.5937, 78.9629]} // Center of India
-                      zoom={5}
-                      style={{ height: "100%", width: "100%" }}
-                      key="heatmap-map"
-                    >
-                      <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      />
-                      {heatmapData.length > 0 && <HeatmapLayerComponent data={heatmapData} />}
-                    </MapContainer>
-                  )}
-                </div>
+                {typeof window !== "undefined" && mapMounted && mapContainerRef.current && mapView === "heatmap" && (
+                  <MapContainer
+                    center={[20.5937, 78.9629]} // Center of India
+                    zoom={5}
+                    style={{ height: "100%", width: "100%" }}
+                    key={`heatmap-map-${Date.now()}`}
+                  >
+                    <TileLayer
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+                    {heatmapData.length > 0 && <HeatmapLayerComponent data={heatmapData} />}
+                  </MapContainer>
+                )}
               </div>
             </CardContent>
           </Card>
