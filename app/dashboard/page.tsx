@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle } from "lucide-react";
+import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle, Landmark } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/loader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -48,6 +48,7 @@ export default function DashboardPage() {
   const [activeUsers, setActiveUsers] = useState<number>(0);
   const [totalStations, setTotalStations] = useState<number>(0);
   const [totalIssues, setTotalIssues] = useState<number>(0);
+  const [totalAttractions, setTotalAttractions] = useState<number>(0);
   const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [routeAnalytics, setRouteAnalytics] = useState<any[]>([]);
@@ -111,20 +112,26 @@ export default function DashboardPage() {
 
       // Check cache first
       const cacheKey = generateCacheKey(`${API_URL}/dashboard-stats`);
-      const cached = apiCache.get<{ totalUsers: number; activeUsers: number; totalStations: number; totalIssues: number }>(cacheKey);
+      const cached = apiCache.get<{ totalUsers: number; activeUsers: number; totalStations: number; totalIssues: number; totalAttractions: number }>(cacheKey);
       
       if (cached) {
         setTotalUsers(cached.totalUsers);
         setActiveUsers(cached.activeUsers);
         setTotalStations(cached.totalStations);
         setTotalIssues(cached.totalIssues || 0);
+        setTotalAttractions(cached.totalAttractions || 0);
         setLoading(false);
         return;
       }
 
       // Use getAllUsers service which properly handles sessionId header
-      // Fetch users, stations, and issues in parallel
-      const [usersData, stationsResponse, issuesResponse] = await Promise.all([
+      // Fetch users, stations, issues, and attractions in parallel
+      console.log('[Dashboard] Fetching dashboard stats from:', {
+        attractionsUrl: `${API_URL}/attractions/count`,
+        hasSessionId: !!sessionId,
+      });
+      
+      const [usersData, stationsResponse, issuesResponse, attractionsResponse] = await Promise.all([
         getAllUsers(sessionId || undefined).catch(err => {
           console.error('[Dashboard] Error fetching users:', err);
           if (axios.isAxiosError(err) && err.response?.status === 401) {
@@ -139,6 +146,18 @@ export default function DashboardPage() {
         axios.get(`${API_URL}/userissues/all`).catch(err => {
           console.error('[Dashboard] Error fetching issues:', err);
           return { data: { issues: [], count: 0 } };
+        }),
+        axios.get(`${API_URL}/attractions/count`).catch(err => {
+          console.error('[Dashboard] Error fetching attractions count:', err);
+          if (axios.isAxiosError(err)) {
+            console.error('[Dashboard] Attractions count API error details:', {
+              status: err.response?.status,
+              statusText: err.response?.statusText,
+              data: err.response?.data,
+              url: err.config?.url,
+            });
+          }
+          return { data: { totalCount: 0 } };
         }),
       ]);
 
@@ -158,7 +177,29 @@ export default function DashboardPage() {
       const issuesData = issuesResponse.data?.issues || [];
       const issuesCount = issuesResponse.data?.count ?? (Array.isArray(issuesData) ? issuesData.length : 0);
 
-      const statsData = { totalUsers: total, activeUsers: active, totalStations: totalStationsCount, totalIssues: issuesCount };
+      // Handle attractions response - get count from response
+      // Response structure: { totalCount: number }
+      let attractionsCount = 0;
+      if (typeof attractionsResponse.data === 'number') {
+        attractionsCount = attractionsResponse.data;
+      } else if (attractionsResponse.data?.totalCount !== undefined) {
+        attractionsCount = attractionsResponse.data.totalCount;
+      } else if (attractionsResponse.data?.count !== undefined) {
+        attractionsCount = attractionsResponse.data.count;
+      } else {
+        console.warn('[Dashboard] Unexpected attractions count response structure:', {
+          data: attractionsResponse.data,
+          dataType: typeof attractionsResponse.data,
+          keys: attractionsResponse.data ? Object.keys(attractionsResponse.data) : 'null/undefined',
+        });
+      }
+      
+      console.log('[Dashboard] Attractions count fetched:', {
+        count: attractionsCount,
+        responseData: attractionsResponse.data,
+      });
+
+      const statsData = { totalUsers: total, activeUsers: active, totalStations: totalStationsCount, totalIssues: issuesCount, totalAttractions: attractionsCount };
       
       // Cache the results
       apiCache.set(cacheKey, statsData, DASHBOARD_STATS_CACHE_TTL);
@@ -167,6 +208,7 @@ export default function DashboardPage() {
       setActiveUsers(active);
       setTotalStations(totalStationsCount);
       setTotalIssues(issuesCount);
+      setTotalAttractions(attractionsCount);
     } catch (err) {
       console.error('[Dashboard] Error fetching dashboard stats:', err);
       toast.error('Failed to load dashboard statistics');
@@ -175,6 +217,7 @@ export default function DashboardPage() {
       setActiveUsers(0);
       setTotalStations(0);
       setTotalIssues(0);
+      setTotalAttractions(0);
     } finally {
       setLoading(false);
     }
@@ -340,6 +383,12 @@ export default function DashboardPage() {
       icon: AlertCircle,
       color: "text-chart-4",
     },
+    {
+      title: "Total Attractions",
+      value: totalAttractions.toLocaleString(),
+      icon: Landmark,
+      color: "text-chart-1",
+    },
   ];
 
   // Show loading state while auth is being established
@@ -353,8 +402,8 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid Skeleton */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, index) => (
             <Card key={`skeleton-stat-${index}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-24" />
@@ -487,10 +536,10 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         {loading ? (
           // Skeleton loaders for stats cards
-          Array.from({ length: 4 }).map((_, index) => (
+          Array.from({ length: 5 }).map((_, index) => (
             <Card key={`skeleton-stat-${index}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-24" />
