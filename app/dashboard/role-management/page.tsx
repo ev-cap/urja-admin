@@ -14,7 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Users, Shield, AlertCircle, UserCircle } from "lucide-react";
+import { Users, Shield, AlertCircle, UserCircle, Search } from "lucide-react";
 import { getAllUsers } from "@/lib/services/userService";
 import type { User } from "@/types/auth";
 import {
@@ -24,8 +24,8 @@ import {
   SlideToUnlockHandle,
 } from "@/components/ui/slide-to-unlock";
 import { ShimmeringText } from "@/components/ui/shimmering-text";
-import { Loader } from "@/components/ui/loader";
 import { UpdateRoleSheet } from "./UpdateRoleSheet";
+import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,7 @@ export default function RoleManagementPage() {
   const [error, setError] = useState<string | null>(null);
   const [updateRoleSheetOpen, setUpdateRoleSheetOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Check if user is superadmin (exact match only)
   const userRole = (userData?.userRole || userData?.role || "").toLowerCase();
@@ -104,6 +105,15 @@ export default function RoleManagementPage() {
     // Refresh users list after successful update
     fetchUsers();
   };
+
+  // Filter users based on search query (phone number or user ID)
+  const filteredUsers = users.filter((user) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.trim().toLowerCase();
+    const phone = user.phone?.toLowerCase() || "";
+    const userId = user.id?.toLowerCase() || "";
+    return phone.includes(query) || userId.includes(query);
+  });
 
   if (!isAuthenticated) {
     return (
@@ -246,8 +256,26 @@ export default function RoleManagementPage() {
           </Card>
         ) : loadingUsers ? (
           <Card>
-            <CardContent className="pt-6">
-              <Loader />
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-lg border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-48" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-9 w-24" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         ) : error ? (
@@ -272,13 +300,26 @@ export default function RoleManagementPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {/* Search Bar */}
+              <div className="mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by phone number or user ID..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-4">
-                {users.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No users found
+                    {searchQuery ? "No users found matching your search" : "No users found"}
                   </div>
                 ) : (
-                  users.map((user) => (
+                  filteredUsers.map((user) => (
                     <div
                       key={user.id}
                       className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"

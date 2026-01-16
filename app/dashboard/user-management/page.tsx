@@ -31,6 +31,7 @@ import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
 import { UserIdDisplay } from "@/components/ui/user-id-display";
+import { CountryCodeSelect } from "@/components/ui/country-code-select";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -38,6 +39,7 @@ export default function UserManagementPage() {
   const { isLoading: authLoading, isAuthenticated } = useAuthContext();
   const [userSearchType, setUserSearchType] = useState<'phone' | 'userId'>('phone');
   const [userSearchValue, setUserSearchValue] = useState('');
+  const [countryCode, setCountryCode] = useState('+91');
   const [userSearching, setUserSearching] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [userSearchError, setUserSearchError] = useState<string | null>(null);
@@ -110,9 +112,10 @@ export default function UserManagementPage() {
       let userId = userSearchValue;
 
       if (userSearchType === 'phone') {
+        const phoneNumber = `${countryCode}${userSearchValue}`;
         const checkResponse = await axios.post(
           `${API_URL}/user-exists`,
-          { phone: userSearchValue },
+          { phone: phoneNumber },
           { headers }
         );
 
@@ -317,6 +320,7 @@ export default function UserManagementPage() {
                 onClick={() => {
                   setUserSearchType('phone');
                   setUserSearchValue('');
+                  setCountryCode('+91');
                   setUserData(null);
                   setUserSearchError(null);
                 }}
@@ -342,25 +346,46 @@ export default function UserManagementPage() {
 
             {/* Search Input */}
             <div className="flex gap-2">
-              <Input
-                placeholder={
-                  userSearchType === 'phone'
-                    ? 'Enter phone number (e.g., +15555550111)'
-                    : 'Enter user ID'
-                }
-                value={userSearchValue}
-                onChange={(e) => {
-                  setUserSearchValue(e.target.value);
-                  setUserSearchError(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    searchUser();
-                  }
-                }}
-                className="flex-1"
-                disabled={userSearching}
-              />
+              {userSearchType === 'phone' ? (
+                <div className="flex flex-1">
+                  <CountryCodeSelect
+                    value={countryCode}
+                    onChange={setCountryCode}
+                    disabled={userSearching}
+                  />
+                  <Input
+                    placeholder="Enter phone number"
+                    value={userSearchValue}
+                    onChange={(e) => {
+                      setUserSearchValue(e.target.value);
+                      setUserSearchError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        searchUser();
+                      }
+                    }}
+                    className="flex-1 rounded-l-none"
+                    disabled={userSearching}
+                  />
+                </div>
+              ) : (
+                <Input
+                  placeholder="Enter user ID"
+                  value={userSearchValue}
+                  onChange={(e) => {
+                    setUserSearchValue(e.target.value);
+                    setUserSearchError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      searchUser();
+                    }
+                  }}
+                  className="flex-1"
+                  disabled={userSearching}
+                />
+              )}
               <Button onClick={searchUser} disabled={userSearching} className="gap-2">
                 {userSearching ? (
                   <>
