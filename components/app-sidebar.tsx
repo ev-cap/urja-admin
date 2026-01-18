@@ -16,6 +16,7 @@ import {
   LogOut,
   Shield,
   Route,
+  Bell,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -108,6 +109,11 @@ const defaultMenuItems: MenuItem[] = [
     icon: Shield,
   },
   {
+    title: "Notifications",
+    url: "/dashboard/notifications",
+    icon: Bell,
+  },
+  {
     title: "Settings",
     url: "/dashboard/settings",
     icon: Settings,
@@ -120,7 +126,7 @@ export function AppSidebar() {
   const { signOut, userId } = useAuth()
   const router = useRouter()
   const isCollapsed = state === "collapsed"
-  
+
   const [customOrderEnabled, setCustomOrderEnabled] = useState(false)
   const [menuItems, setMenuItems] = useState<MenuItem[]>(defaultMenuItems)
 
