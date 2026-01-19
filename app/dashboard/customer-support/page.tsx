@@ -43,7 +43,6 @@ import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
 import { UserIdDisplay } from "@/components/ui/user-id-display";
 import { useTheme } from "next-themes";
-import html2canvas from "html2canvas";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const CUSTOMER_SUPPORT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
@@ -776,6 +775,9 @@ export default function CustomerSupportPage() {
         }
       });
 
+      // Dynamically import html2canvas only when needed
+      const html2canvas = (await import("html2canvas")).default;
+      
       // Generate canvas with options to avoid color parsing issues
       // Use iframe's window to avoid style inheritance from parent
       const iframeWindow = iframe.contentWindow;
