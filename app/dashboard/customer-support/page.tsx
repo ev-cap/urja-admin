@@ -36,11 +36,14 @@ import {
   UserCircle,
   CheckCircle2,
   Send,
+  Image as ExportImageIcon,
 } from "lucide-react";
 import axios from "axios";
 import { getManagedToken } from "@/lib/auth/tokenManager";
 import { cn } from "@/lib/utils";
 import { UserIdDisplay } from "@/components/ui/user-id-display";
+import { useTheme } from "next-themes";
+import html2canvas from "html2canvas";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const CUSTOMER_SUPPORT_CACHE_TTL = 3 * 60 * 1000; // 3 minutes
@@ -123,6 +126,7 @@ const STATUS_CONFIG = {
 
 export default function CustomerSupportPage() {
   const { isLoading: authLoading, isAuthenticated } = useAuthContext();
+  const { theme, resolvedTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [suggestions, setSuggestions] = useState<Issue[]>([]);
@@ -144,6 +148,12 @@ export default function CustomerSupportPage() {
   const [selectedIssueForResolve, setSelectedIssueForResolve] = useState<Issue | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
   const [resolvingIssue, setResolvingIssue] = useState(false);
+
+  // Export to Image State
+  const [exportingImage, setExportingImage] = useState(false);
+  const [previewImageOpen, setPreviewImageOpen] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewImageFilename, setPreviewImageFilename] = useState<string>("");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -331,6 +341,478 @@ export default function CustomerSupportPage() {
     setSelectedIssueForResolve(issue);
     setResolutionNotes(issue.resolutionNotes || "");
     setResolveSheetOpen(true);
+  };
+
+  const exportSuggestionAsImage = async (suggestion: Issue) => {
+    setExportingImage(true);
+    try {
+      const currentTheme = resolvedTheme || theme || "light";
+      const isDark = currentTheme === "dark";
+
+      // Fetch user info to get name
+      let userName = "Unknown User";
+      try {
+        const token = await getManagedToken();
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+          headers["x-jwt-token"] = token;
+        }
+        const userResponse = await axios.get(`${API_URL}/users/${suggestion.userId}/basic-info`, { headers });
+        if (userResponse.data) {
+          userName = `${userResponse.data.firstName || ""} ${userResponse.data.lastName || ""}`.trim() || suggestion.userId.slice(0, 8);
+        }
+      } catch (err) {
+        console.warn("[CustomerSupport] Could not fetch user info for export:", err);
+        userName = suggestion.userId.slice(0, 8);
+      }
+
+      // Create a temporary iframe for export - completely isolated from page styles
+      const iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.top = "0";
+      iframe.style.left = "0";
+      iframe.style.width = "800px";
+      iframe.style.height = "1200px";
+      iframe.style.border = "none";
+      iframe.style.zIndex = "-9999";
+      iframe.style.visibility = "hidden";
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
+        throw new Error("Failed to access iframe document");
+      }
+
+      // Set iframe document styles
+      iframeDoc.body.style.margin = "0";
+      iframeDoc.body.style.padding = "0";
+      iframeDoc.body.style.backgroundColor = isDark ? "rgb(10, 10, 10)" : "rgb(255, 255, 255)";
+
+      // Create container inside iframe
+      const tempContainer = iframeDoc.createElement("div");
+      tempContainer.style.width = "800px";
+      tempContainer.style.height = "auto";
+      tempContainer.style.backgroundColor = isDark ? "rgb(10, 10, 10)" : "rgb(255, 255, 255)";
+      tempContainer.style.padding = "40px";
+      tempContainer.style.fontFamily = "Arial, sans-serif";
+      iframeDoc.body.appendChild(tempContainer);
+
+      // Build the export content
+      const logoPath = isDark 
+        ? "/admin_rool_text_white_logo.png" 
+        : "/admin_rool_text_black_logo.png";
+
+      const priorityConfig = PRIORITY_CONFIG[suggestion.priority as keyof typeof PRIORITY_CONFIG] || PRIORITY_CONFIG[""];
+      const statusConfig = STATUS_CONFIG[suggestion.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.submitted;
+
+      // Define RGB colors explicitly
+      const bgColor = isDark ? "rgb(10, 10, 10)" : "rgb(255, 255, 255)";
+      const textColor = isDark ? "rgb(255, 255, 255)" : "rgb(0, 0, 0)";
+      const mutedColor = isDark ? "rgb(160, 160, 160)" : "rgb(102, 102, 102)";
+      const borderColor = isDark ? "rgb(51, 51, 51)" : "rgb(229, 229, 229)";
+      const cardBg = isDark ? "rgb(26, 26, 26)" : "rgb(245, 245, 245)";
+      const footerColor = isDark ? "rgb(102, 102, 102)" : "rgb(153, 153, 153)";
+      const footerLightColor = isDark ? "rgb(85, 85, 85)" : "rgb(170, 170, 170)";
+
+      tempContainer.innerHTML = `
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+        </style>
+        <div style="
+          background-color: ${bgColor};
+          color: ${textColor};
+          padding: 40px;
+          border-radius: 12px;
+          max-width: 800px;
+          margin: 0 auto;
+        ">
+          <!-- Header with Logo -->
+          <div style="
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 36px;
+            padding-bottom: 28px;
+            border-bottom: 2px solid ${borderColor};
+          ">
+            <div style="flex: 1;">
+              <h1 style="
+                font-size: 32px;
+                font-weight: 700;
+                margin: 0 0 10px 0;
+                color: ${textColor};
+                letter-spacing: -0.5px;
+              ">App Suggestion</h1>
+              <p style="
+                font-size: 15px;
+                color: ${mutedColor};
+                margin: 0;
+                font-weight: 400;
+              ">ROOL Admin Dashboard</p>
+            </div>
+            <div style="
+              width: 200px;
+              height: 50px;
+              position: relative;
+              display: flex;
+              align-items: center;
+              justify-content: flex-end;
+              flex-shrink: 0;
+            ">
+              <img 
+                src="${logoPath}" 
+                alt="ROOL Logo" 
+                style="
+                  max-width: 200px;
+                  max-height: 50px;
+                  width: auto;
+                  height: auto;
+                  object-fit: contain;
+                  object-position: right center;
+                  display: block;
+                "
+                onerror="this.style.display='none'"
+              />
+            </div>
+          </div>
+
+          <!-- Suggestion Content -->
+          <div style="margin-bottom: 24px;">
+            <div style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 16px;
+              flex-wrap: wrap;
+            ">
+              <h2 style="
+                font-size: 24px;
+                font-weight: 600;
+                margin: 0;
+                color: ${textColor};
+              ">${suggestion.issueType || "App Suggestion"}</h2>
+              ${suggestion.priority && suggestion.priority !== "" ? `
+              <span style="
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                background: ${priorityConfig.color.includes("red") ? "rgba(239, 68, 68, 0.1)" : priorityConfig.color.includes("orange") ? "rgba(249, 115, 22, 0.1)" : "rgba(59, 130, 246, 0.1)"};
+                color: ${priorityConfig.color.includes("red") ? "#ef4444" : priorityConfig.color.includes("orange") ? "#f97316" : "#3b82f6"};
+                border: 1px solid ${priorityConfig.color.includes("red") ? "rgba(239, 68, 68, 0.3)" : priorityConfig.color.includes("orange") ? "rgba(249, 115, 22, 0.3)" : "rgba(59, 130, 246, 0.3)"};
+              ">${priorityConfig.label}</span>
+              ` : ""}
+              ${suggestion.status !== "resolved" ? `
+              <span style="
+                display: inline-flex;
+                align-items: center;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 12px;
+                font-weight: 600;
+                background: ${statusConfig.color.includes("yellow") ? "rgba(234, 179, 8, 0.1)" : statusConfig.color.includes("blue") ? "rgba(59, 130, 246, 0.1)" : "rgba(107, 114, 128, 0.1)"};
+                color: ${statusConfig.color.includes("yellow") ? "#eab308" : statusConfig.color.includes("blue") ? "#3b82f6" : "#6b7280"};
+                border: 1px solid ${statusConfig.color.includes("yellow") ? "rgba(234, 179, 8, 0.3)" : statusConfig.color.includes("blue") ? "rgba(59, 130, 246, 0.3)" : "rgba(107, 114, 128, 0.3)"};
+              ">${statusConfig.label}</span>
+              ` : ""}
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div style="
+            background-color: ${cardBg};
+            padding: 28px;
+            border-radius: 10px;
+            margin-bottom: 28px;
+            border: 1px solid ${borderColor};
+          ">
+            <h3 style="
+              font-size: 13px;
+              font-weight: 600;
+              color: ${mutedColor};
+              margin: 0 0 16px 0;
+              text-transform: uppercase;
+              letter-spacing: 0.8px;
+            ">Description</h3>
+            <p style="
+              font-size: 17px;
+              line-height: 1.7;
+              color: ${textColor};
+              margin: 0;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+            ">${(suggestion.description || "User did not provide additional details").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+          </div>
+
+          <!-- Metadata -->
+          <div style="
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+            margin-bottom: 28px;
+          ">
+            <div style="
+              background-color: ${cardBg};
+              padding: 20px;
+              border-radius: 10px;
+              border: 1px solid ${borderColor};
+            ">
+              <p style="
+                font-size: 12px;
+                color: ${mutedColor};
+                margin: 0 0 10px 0;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                font-weight: 600;
+              ">Submitted By</p>
+              <p style="
+                font-size: 18px;
+                font-weight: 600;
+                color: ${textColor};
+                margin: 0;
+                word-break: break-word;
+                line-height: 1.4;
+              ">${userName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+            </div>
+            <div style="
+              background-color: ${cardBg};
+              padding: 20px;
+              border-radius: 10px;
+              border: 1px solid ${borderColor};
+            ">
+              <p style="
+                font-size: 12px;
+                color: ${mutedColor};
+                margin: 0 0 10px 0;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                font-weight: 600;
+              ">Submitted</p>
+              <p style="
+                font-size: 16px;
+                font-weight: 600;
+                color: ${textColor};
+                margin: 0;
+                line-height: 1.4;
+              ">${new Date(suggestion.submittedAt).toLocaleDateString("en-US", { 
+                year: "numeric", 
+                month: "long", 
+                day: "numeric" 
+              })}</p>
+            </div>
+            ${suggestion.logs?.deviceInfo?.platform ? `
+            <div style="
+              background-color: ${cardBg};
+              padding: 20px;
+              border-radius: 10px;
+              border: 1px solid ${borderColor};
+            ">
+              <p style="
+                font-size: 12px;
+                color: ${mutedColor};
+                margin: 0 0 10px 0;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                font-weight: 600;
+              ">Platform</p>
+              <p style="
+                font-size: 16px;
+                font-weight: 600;
+                color: ${textColor};
+                margin: 0;
+                text-transform: capitalize;
+                line-height: 1.4;
+              ">${suggestion.logs.deviceInfo.platform}</p>
+            </div>
+            ` : ""}
+            ${suggestion.logs?.deviceInfo?.deviceBrand ? `
+            <div style="
+              background-color: ${cardBg};
+              padding: 20px;
+              border-radius: 10px;
+              border: 1px solid ${borderColor};
+            ">
+              <p style="
+                font-size: 12px;
+                color: ${mutedColor};
+                margin: 0 0 10px 0;
+                text-transform: uppercase;
+                letter-spacing: 0.8px;
+                font-weight: 600;
+              ">Brand</p>
+              <p style="
+                font-size: 16px;
+                font-weight: 600;
+                color: ${textColor};
+                margin: 0;
+                line-height: 1.4;
+              ">${suggestion.logs.deviceInfo.deviceBrand}</p>
+            </div>
+            ` : ""}
+          </div>
+
+          ${suggestion.attachments && suggestion.attachments.length > 0 ? `
+          <div style="margin-bottom: 24px;">
+            <p style="
+              font-size: 12px;
+              color: ${mutedColor};
+              margin: 0 0 12px 0;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            ">Attachments (${suggestion.attachments.length})</p>
+            <div style="
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            ">
+              ${suggestion.attachments.map((att: any) => `
+                <div style="
+                  background-color: ${cardBg};
+                  padding: 12px;
+                  border-radius: 6px;
+                  font-size: 14px;
+                  font-family: monospace;
+                  color: ${textColor};
+                ">${att.filename}</div>
+              `).join("")}
+            </div>
+          </div>
+          ` : ""}
+
+          ${suggestion.resolutionNotes ? `
+          <div style="
+            background-color: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 24px;
+            border-radius: 10px;
+            margin-top: 28px;
+          ">
+            <p style="
+              font-size: 13px;
+              color: ${mutedColor};
+              margin: 0 0 14px 0;
+              text-transform: uppercase;
+              letter-spacing: 0.8px;
+              font-weight: 600;
+            ">Resolution Notes</p>
+            <p style="
+              font-size: 16px;
+              line-height: 1.7;
+              color: ${textColor};
+              margin: 0;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+            ">${suggestion.resolutionNotes.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+            ${suggestion.resolvedAt ? `
+            <p style="
+              font-size: 13px;
+              color: ${mutedColor};
+              margin: 16px 0 0 0;
+              font-weight: 500;
+            ">Resolved on ${new Date(suggestion.resolvedAt).toLocaleDateString("en-US", { 
+              year: "numeric", 
+              month: "long", 
+              day: "numeric" 
+            })}</p>
+            ` : ""}
+          </div>
+          ` : ""}
+
+          <!-- Footer -->
+          <div style="
+            margin-top: 36px;
+            padding-top: 28px;
+            border-top: 2px solid ${borderColor};
+            text-align: center;
+          ">
+            <p style="
+              font-size: 13px;
+              color: ${footerColor};
+              margin: 0;
+              font-weight: 500;
+            ">Generated by ROOL Admin Dashboard</p>
+            <p style="
+              font-size: 12px;
+              color: ${footerLightColor};
+              margin: 6px 0 0 0;
+            ">${new Date().toLocaleString()}</p>
+          </div>
+        </div>
+      `;
+
+      // Wait for images to load
+      await new Promise<void>((resolve) => {
+        const img = tempContainer.querySelector("img") as HTMLImageElement;
+        if (img) {
+          // Create new image to preload
+          const preloadImg = new Image();
+          preloadImg.crossOrigin = "anonymous";
+          preloadImg.onload = () => {
+            if (img) {
+              img.src = preloadImg.src;
+            }
+            setTimeout(() => resolve(), 100);
+          };
+          preloadImg.onerror = () => {
+            // If image fails, continue without logo
+            setTimeout(() => resolve(), 100);
+          };
+          preloadImg.src = logoPath;
+          
+          // Timeout fallback
+          setTimeout(() => resolve(), 3000);
+        } else {
+          resolve();
+        }
+      });
+
+      // Generate canvas with options to avoid color parsing issues
+      // Use iframe's window to avoid style inheritance from parent
+      const iframeWindow = iframe.contentWindow;
+      const canvas = await html2canvas(tempContainer, {
+        backgroundColor: bgColor,
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: false,
+        foreignObjectRendering: false,
+        windowWidth: 800,
+        windowHeight: 1200,
+        ...(iframeWindow ? { window: iframeWindow } : {}),
+      });
+
+      // Convert to blob and show preview
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const url = URL.createObjectURL(blob);
+          const filename = `rool-suggestion-${suggestion.id.slice(0, 8)}-${Date.now()}.png`;
+          setPreviewImageUrl(url);
+          setPreviewImageFilename(filename);
+          setPreviewImageOpen(true);
+          toast.success("Image generated! Preview ready.");
+        }
+      }, "image/png");
+
+      // Cleanup
+      if (iframe.parentNode) {
+        document.body.removeChild(iframe);
+      }
+    } catch (error) {
+      console.error("[CustomerSupport] Error exporting image:", error);
+      toast.error("Failed to export suggestion as image");
+    } finally {
+      setExportingImage(false);
+    }
   };
 
   const filteredData = (activeTab === "issues" ? issues : suggestions).filter((item) => {
@@ -824,6 +1306,34 @@ export default function CustomerSupportPage() {
                                 </div>
                               )}
 
+                              {/* Export as Image Button - Only for Suggestions, below Resolve Button */}
+                              {activeTab === "suggestions" && (
+                                <div className="pt-2">
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      exportSuggestionAsImage(item);
+                                    }}
+                                    disabled={exportingImage}
+                                    size="sm"
+                                    variant="ghost"
+                                    className="w-full gap-1.5 text-xs h-7 text-purple-600 dark:text-purple-400 hover:bg-purple-500/10"
+                                  >
+                                    {exportingImage ? (
+                                      <>
+                                        <Loader2 className="h-3 w-3 animate-spin" />
+                                        <span className="text-xs">Exporting...</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ExportImageIcon className="h-3 w-3" />
+                                        <span className="text-xs">Export as Image</span>
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
+                              )}
+
                               {/* Resolved Badge */}
                               {item.status === "resolved" && (
                                 <div className="pt-4 border-t">
@@ -1047,6 +1557,105 @@ export default function CustomerSupportPage() {
           )}
         </div>
       </Sheet>
+
+      {/* Image Preview Modal */}
+      {previewImageOpen && previewImageUrl && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Blurred Background Overlay */}
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            onClick={() => {
+              setPreviewImageOpen(false);
+              if (previewImageUrl) {
+                URL.revokeObjectURL(previewImageUrl);
+                setPreviewImageUrl(null);
+              }
+            }}
+          />
+          
+          {/* Preview Content */}
+          <div className="relative z-10 w-full max-w-4xl max-h-[90vh] bg-background rounded-lg shadow-2xl border-2 overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b bg-muted/50">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10">
+                  <ExportImageIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Image Preview</h3>
+                  <p className="text-sm text-muted-foreground">Review before downloading</p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setPreviewImageOpen(false);
+                  if (previewImageUrl) {
+                    URL.revokeObjectURL(previewImageUrl);
+                    setPreviewImageUrl(null);
+                  }
+                }}
+              >
+                <XCircle className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Image Preview */}
+            <div className="flex-1 overflow-auto p-6 flex items-center justify-center bg-muted/20">
+              <div className="relative max-w-full">
+                <img
+                  src={previewImageUrl}
+                  alt="Suggestion Preview"
+                  className="max-w-full h-auto rounded-lg shadow-lg border-2 border-border"
+                  style={{ maxHeight: "calc(90vh - 200px)" }}
+                />
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex items-center justify-between p-4 border-t bg-muted/50 gap-3">
+              <p className="text-sm text-muted-foreground truncate flex-1">
+                {previewImageFilename}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPreviewImageOpen(false);
+                    if (previewImageUrl) {
+                      URL.revokeObjectURL(previewImageUrl);
+                      setPreviewImageUrl(null);
+                    }
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (previewImageUrl) {
+                      const link = document.createElement("a");
+                      link.href = previewImageUrl;
+                      link.download = previewImageFilename;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      toast.success("Image downloaded successfully!");
+                      setPreviewImageOpen(false);
+                      URL.revokeObjectURL(previewImageUrl);
+                      setPreviewImageUrl(null);
+                    }
+                  }}
+                  className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Image
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
