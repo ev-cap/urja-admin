@@ -187,6 +187,9 @@ export default function RoleManagementPage() {
             )}
           >
             <DialogTitle className="sr-only">Slide to Access</DialogTitle>
+            <DialogPrimitive.Description className="sr-only">
+              Slide to unlock and access role management.
+            </DialogPrimitive.Description>
             <div className="flex flex-col items-center gap-5">
               <div className="flex flex-col items-center gap-2 text-center">
                 <Shield className="h-10 w-10 text-primary" />
