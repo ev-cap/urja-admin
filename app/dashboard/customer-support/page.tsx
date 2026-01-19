@@ -1558,67 +1558,50 @@ export default function CustomerSupportPage() {
         </div>
       </Sheet>
 
-      {/* Image Preview Modal */}
-      {previewImageOpen && previewImageUrl && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Blurred Background Overlay */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            onClick={() => {
-              setPreviewImageOpen(false);
-              if (previewImageUrl) {
-                URL.revokeObjectURL(previewImageUrl);
-                setPreviewImageUrl(null);
-              }
-            }}
-          />
-          
-          {/* Preview Content */}
-          <div className="relative z-10 w-full max-w-4xl max-h-[90vh] bg-background rounded-lg shadow-2xl border-2 overflow-hidden flex flex-col">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-muted/50">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-500/10">
-                  <ExportImageIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold">Image Preview</h3>
-                  <p className="text-sm text-muted-foreground">Review before downloading</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setPreviewImageOpen(false);
-                  if (previewImageUrl) {
-                    URL.revokeObjectURL(previewImageUrl);
-                    setPreviewImageUrl(null);
-                  }
-                }}
-              >
-                <XCircle className="h-5 w-5" />
-              </Button>
+      {/* Image Preview Sheet */}
+      <Sheet
+        open={previewImageOpen}
+        close={() => {
+          setPreviewImageOpen(false);
+          if (previewImageUrl) {
+            URL.revokeObjectURL(previewImageUrl);
+            setPreviewImageUrl(null);
+          }
+        }}
+        title="Image Preview"
+      >
+        <div className="flex flex-col gap-6 p-6 pt-12">
+          {/* Header */}
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10">
+              <ExportImageIcon className="h-6 w-6 text-purple-600 dark:text-purple-400" />
             </div>
+            <div>
+              <h3 className="text-xl font-bold text-d-fg">Image Preview</h3>
+              <p className="text-sm text-muted-foreground">Review before downloading</p>
+            </div>
+          </div>
 
-            {/* Image Preview */}
-            <div className="flex-1 overflow-auto p-6 flex items-center justify-center bg-muted/20">
-              <div className="relative max-w-full">
+          {/* Image Preview */}
+          {previewImageUrl && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/20 p-4 flex items-center justify-center border border-border">
                 <img
                   src={previewImageUrl}
                   alt="Suggestion Preview"
                   className="max-w-full h-auto rounded-lg shadow-lg border-2 border-border"
-                  style={{ maxHeight: "calc(90vh - 200px)" }}
+                  style={{ maxHeight: "60vh" }}
                 />
               </div>
-            </div>
 
-            {/* Footer Actions */}
-            <div className="flex items-center justify-between p-4 border-t bg-muted/50 gap-3">
-              <p className="text-sm text-muted-foreground truncate flex-1">
-                {previewImageFilename}
-              </p>
-              <div className="flex gap-2">
+              {/* Filename */}
+              <div className="rounded-lg bg-d-muted p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Filename</p>
+                <p className="text-sm font-medium text-d-fg break-all">{previewImageFilename}</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1628,6 +1611,7 @@ export default function CustomerSupportPage() {
                       setPreviewImageUrl(null);
                     }
                   }}
+                  className="flex-1"
                 >
                   Cancel
                 </Button>
@@ -1646,16 +1630,16 @@ export default function CustomerSupportPage() {
                       setPreviewImageUrl(null);
                     }
                   }}
-                  className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+                  className="flex-1 gap-2 bg-purple-600 hover:bg-purple-700 text-white"
                 >
                   <Download className="h-4 w-4" />
                   Download Image
                 </Button>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </Sheet>
     </>
   );
 }
