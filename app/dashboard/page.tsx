@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle, Landmark } from "lucide-react";
+import { Users, ShoppingCart, Zap, TrendingUp, Activity, Car, MapPin, Battery, User as UserIcon, FileText, Route, Loader2, AlertCircle, Landmark, Globe, Database } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader } from "@/components/ui/loader";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
     const cacheKey = generateCacheKey(`${API_URL}/activitylogs`, { page });
     const cached = apiCache.get<ActivityLog[]>(cacheKey);
-    
+
     if (cached) {
       return { data: cached, hasMore: cached.length === ACTIVITY_LOGS_PAGE_SIZE };
     }
@@ -74,7 +74,7 @@ export default function DashboardPage() {
       const response = await axios.get(`${API_URL}/activitylogs`);
       const activities = response.data?.activities || response.data || [];
       const allLogs = Array.isArray(activities) ? activities : [];
-      
+
       // Paginate: get page of logs
       const startIndex = (page - 1) * ACTIVITY_LOGS_PAGE_SIZE;
       const endIndex = startIndex + ACTIVITY_LOGS_PAGE_SIZE;
@@ -105,7 +105,7 @@ export default function DashboardPage() {
     try {
       setLoading(true);
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      
+
       if (!API_URL) {
         throw new Error('API_URL is not defined in environment');
       }
@@ -113,7 +113,7 @@ export default function DashboardPage() {
       // Check cache first
       const cacheKey = generateCacheKey(`${API_URL}/dashboard-stats`);
       const cached = apiCache.get<{ totalUsers: number; activeUsers: number; totalStations: number; totalIssues: number; totalAttractions: number }>(cacheKey);
-      
+
       if (cached) {
         setTotalUsers(cached.totalUsers);
         setActiveUsers(cached.activeUsers);
@@ -130,7 +130,7 @@ export default function DashboardPage() {
         attractionsUrl: `${API_URL}/attractions/count`,
         hasSessionId: !!sessionId,
       });
-      
+
       const [usersData, stationsResponse, issuesResponse, attractionsResponse] = await Promise.all([
         getAllUsers(sessionId || undefined).catch(err => {
           console.error('[Dashboard] Error fetching users:', err);
@@ -163,10 +163,10 @@ export default function DashboardPage() {
 
       // getAllUsers already returns an array of users
       const users = Array.isArray(usersData) ? usersData : [];
-      
+
       const total = Array.isArray(users) ? users.length : 0;
-      const active = Array.isArray(users) 
-        ? users.filter((user: any) => user.userStatus === "active").length 
+      const active = Array.isArray(users)
+        ? users.filter((user: any) => user.userStatus === "active").length
         : 0;
 
       // Handle stations response structure - could be { stations: [...] } or [...]
@@ -193,14 +193,14 @@ export default function DashboardPage() {
           keys: attractionsResponse.data ? Object.keys(attractionsResponse.data) : 'null/undefined',
         });
       }
-      
+
       console.log('[Dashboard] Attractions count fetched:', {
         count: attractionsCount,
         responseData: attractionsResponse.data,
       });
 
       const statsData = { totalUsers: total, activeUsers: active, totalStations: totalStationsCount, totalIssues: issuesCount, totalAttractions: attractionsCount };
-      
+
       // Cache the results
       apiCache.set(cacheKey, statsData, DASHBOARD_STATS_CACHE_TTL);
 
@@ -225,10 +225,10 @@ export default function DashboardPage() {
 
   const fetchRouteAnalytics = useCallback(async () => {
     setLoadingRouteAnalytics(true);
-    
+
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL;
-      
+
       if (!API_URL) {
         throw new Error('API_URL is not defined in environment');
       }
@@ -236,7 +236,7 @@ export default function DashboardPage() {
       // Check cache first
       const cacheKey = generateCacheKey(`${API_URL}/routes/analytics`);
       const cached = apiCache.get<any[]>(cacheKey);
-      
+
       if (cached) {
         setRouteAnalytics(cached);
         setLoadingRouteAnalytics(false);
@@ -245,19 +245,19 @@ export default function DashboardPage() {
 
       // Let axios interceptor handle auth headers automatically
       const response = await axios.get(`${API_URL}/routes/analytics`);
-      
+
       // Handle response structure - could be { analytics: [...] } or [...]
       const analytics = response.data?.analytics || response.data;
       const routes = Array.isArray(analytics) ? analytics : [];
-      
+
       console.log('[Dashboard] Route analytics fetched:', {
         total: routes.length,
         sample: routes[0] ? Object.keys(routes[0]) : null,
       });
-      
+
       // Cache the results
       apiCache.set(cacheKey, routes, ROUTE_ANALYTICS_CACHE_TTL);
-      
+
       setRouteAnalytics(routes);
     } catch (err: any) {
       console.error('[Dashboard] Route analytics fetch failed:', err);
@@ -527,441 +527,434 @@ export default function DashboardPage() {
         }
       `}</style>
       <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back! Here's what's happening with your platform.
-        </p>
-      </div>
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">
+            Welcome back! Here's what's happening with your platform.
+          </p>
+        </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {loading ? (
-          // Skeleton loaders for stats cards
-          Array.from({ length: 5 }).map((_, index) => (
-            <Card key={`skeleton-stat-${index}`}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-4 rounded" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-8 w-20 mb-2" />
-                <Skeleton className="h-3 w-32" />
-              </CardContent>
-            </Card>
-          ))
-        ) : (
-          stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <Card key={stat.title}>
+        {/* Stats Grid */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {loading ? (
+            // Skeleton loaders for stats cards
+            Array.from({ length: 5 }).map((_, index) => (
+              <Card key={`skeleton-stat-${index}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    {stat.title}
-                  </CardTitle>
-                  <Icon className={`h-4 w-4 ${stat.color}`} />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-4 rounded" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <Skeleton className="h-8 w-20 mb-2" />
+                  <Skeleton className="h-3 w-32" />
                 </CardContent>
               </Card>
-            );
-          })
-        )}
-      </div>
+            ))
+          ) : (
+            stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <Card key={stat.title}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">
+                      {stat.title}
+                    </CardTitle>
+                    <Icon className={`h-4 w-4 ${stat.color}`} />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{stat.value}</div>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
 
-      {/* Recent Activity and Plan Route Analytics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
-        {/* Plan Route Analytics */}
-        <Card className="col-span-4 h-[600px] flex flex-col">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Route className="h-5 w-5 text-primary" />
-              Plan Route Analytics
-            </CardTitle>
-            <CardDescription>
-              Comprehensive analysis of route planning and charging patterns
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2 flex-1 overflow-visible route-analytics-content">
-            {loading || loadingRouteAnalytics ? (
-              <div className="h-full space-y-4">
-                {/* Summary Stats Skeletons */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={`skeleton-summary-${index}`} className="p-3 rounded-lg bg-muted/30 border border-border/50">
-                      <Skeleton className="h-3 w-20 mb-2" />
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                  ))}
-                </div>
-                {/* Map Skeleton */}
-                <div className="h-[400px] w-full rounded-lg overflow-hidden border border-border">
-                  <Skeleton className="h-full w-full" />
-                </div>
-              </div>
-            ) : routeAnalytics.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
-                <div className="text-center">
-                  <Route className="h-12 w-12 mb-4 opacity-20 mx-auto" />
-                  <p className="text-sm mb-2">No route analytics data available</p>
-                  <p className="text-xs opacity-70">Routes will appear here once users plan routes</p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={fetchRouteAnalytics}
-                  className="mt-2"
-                >
-                  <Loader2 className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Routes</p>
-                    <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      {routeAnalytics.length}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Distance</p>
-                    <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                      {(() => {
-                        const total = routeAnalytics.reduce((sum, route) => {
-                          const distance = route?.apiResponse?.routeAnalyses?.[0]?.route?.distanceKm || 
-                                          route?.apiResponse?.batteryManagement?.routeDistanceEstimate || 0;
-                          return sum + distance;
-                        }, 0);
-                        return (total / 1000).toFixed(1);
-                      })()}k km
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Avg Charging Time</p>
-                    <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                      {(() => {
-                        const total = routeAnalytics.reduce((sum, route) => {
-                          const time = route?.apiResponse?.batteryManagement?.totalChargingTime || 
-                                       route?.apiResponse?.routeAnalyses?.[0]?.totalChargingTime || 0;
-                          return sum + time;
-                        }, 0);
-                        const avg = routeAnalytics.length > 0 ? total / routeAnalytics.length : 0;
-                        return Math.round(avg);
-                      })()} min
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
-                    <p className="text-xs text-muted-foreground mb-1">Total Charging Cost</p>
-                    <p className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                      ₹{(() => {
-                        const total = routeAnalytics.reduce((sum, route) => {
-                          const cost = route?.apiResponse?.batteryManagement?.totalChargingCost || 
-                                      route?.apiResponse?.routeAnalyses?.[0]?.totalChargingCost || 0;
-                          return sum + cost;
-                        }, 0);
-                        return total.toFixed(0);
-                      })()}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Route Map Visualization */}
-                <div className="h-[400px] w-full">
-                  <RouteMap routes={routeAnalytics} />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity Logs */}
-        <Card className="col-span-3 border-2 shadow-lg h-[600px] flex flex-col">
-          <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10 pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-primary" />
-                  Recent Activity Logs
-                </CardTitle>
-                <CardDescription className="mt-1.5 text-xs">
-                  Latest platform activities • {activityLogs.length} entries
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 flex-1 overflow-y-auto activity-logs-content">
-            <div className="space-y-2 pr-2">
-              {loading || loadingActivityLogs ? (
-                // Skeleton loaders for activity logs
-                Array.from({ length: 5 }).map((_, index) => (
-                  <div
-                    key={`skeleton-activity-${index}`}
-                    className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card"
-                  >
-                    <Skeleton className="h-10 w-10 rounded-lg flex-shrink-0" />
-                    <div className="flex-1 space-y-2 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Skeleton className="h-5 w-16 rounded-md" />
-                          <Skeleton className="h-4 w-24 rounded" />
-                        </div>
-                        {index === 0 && <Skeleton className="h-5 w-12 rounded-full" />}
-                      </div>
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <div className="flex items-center justify-between">
+        {/* Recent Activity and Plan Route Analytics */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
+          {/* Plan Route Analytics */}
+          <Card className="col-span-4 h-[600px] flex flex-col">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Route className="h-5 w-5 text-primary" />
+                Plan Route Analytics
+              </CardTitle>
+              <CardDescription>
+                Comprehensive analysis of route planning and charging patterns
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2 flex-1 overflow-visible route-analytics-content">
+              {loading || loadingRouteAnalytics ? (
+                <div className="h-full pt-4">
+                  {/* Summary Stats Skeletons */}
+                  <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full pb-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <div key={`skeleton-summary-${index}`} className="p-6 rounded-2xl bg-muted/20 border border-border/30 flex flex-col items-center justify-center space-y-3">
+                        <Skeleton className="h-10 w-10 rounded-xl" />
                         <Skeleton className="h-3 w-20" />
-                        <Skeleton className="h-5 w-16 rounded-full" />
+                        <Skeleton className="h-8 w-24" />
                       </div>
-                    </div>
+                    ))}
                   </div>
-                ))
-              ) : activityLogs.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium">No activity logs available</p>
-                  <p className="text-xs mt-1">Activity logs will appear here</p>
+                </div>
+              ) : routeAnalytics.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 text-muted-foreground">
+                  <div className="text-center">
+                    <Route className="h-12 w-12 mb-4 opacity-20 mx-auto" />
+                    <p className="text-sm mb-2">No route analytics data available</p>
+                    <p className="text-xs opacity-70">Routes will appear here once users plan routes</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={fetchRouteAnalytics}
+                    className="mt-2"
+                  >
+                    <Loader2 className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
                 </div>
               ) : (
-                <>
-                  {activityLogs.map((log, index) => {
-                  const Icon = getCategoryIcon(log.category);
-                  const getCategoryColor = (category: string) => {
-                    switch (category) {
-                      case 'Vehicle':
-                        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-                      case 'Route':
-                        return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
-                      case 'Charging':
-                        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20';
-                      case 'User':
-                        return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
-                      default:
-                        return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
-                    }
-                  };
-                  
-                  return (
-                    <div
-                      key={log.id}
-                      onClick={() => {
-                        setSelectedLog(log);
-                        setSheetOpen(true);
-                      }}
-                      className="group relative flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-accent/50 hover:border-primary/30 cursor-pointer transition-all duration-200 hover:shadow-md"
-                    >
-                      {/* Left Icon */}
-                      <div className={`h-10 w-10 rounded-lg ${getCategoryColor(log.category).split(' ')[0]} flex items-center justify-center flex-shrink-0 border ${getCategoryColor(log.category).split(' ')[2]} group-hover:scale-110 transition-transform`}>
-                        <Icon className="h-5 w-5" />
+                <div className="h-full pt-4">
+                  <div className="grid grid-cols-2 grid-rows-2 gap-4 h-full pb-4">
+                    {/* Total Routes */}
+                    <div className="p-6 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex flex-col justify-center items-center text-center shadow-sm hover:bg-blue-500/10 transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3">
+                        <Route className="h-6 w-6 text-blue-500" />
                       </div>
-                      
-                      {/* Content */}
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total Routes</p>
+                      <p className="text-4xl font-black text-blue-600 dark:text-blue-400">
+                        {routeAnalytics.length}
+                      </p>
+                    </div>
+
+                    {/* Total API Calls */}
+                    <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex flex-col justify-center items-center text-center shadow-sm hover:bg-indigo-500/10 transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-indigo-500/10 flex items-center justify-center mb-3">
+                        <Globe className="h-6 w-6 text-indigo-500" />
+                      </div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Total API Calls</p>
+                      <p className="text-4xl font-black text-indigo-600 dark:text-indigo-400">
+                        {routeAnalytics.reduce((sum: number, route: any) => sum + (route?.summary?.totalApiCalls || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* DB Queries */}
+                    <div className="p-6 rounded-2xl bg-teal-500/5 border border-teal-500/10 flex flex-col justify-center items-center text-center shadow-sm hover:bg-teal-500/10 transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-teal-500/10 flex items-center justify-center mb-3">
+                        <Database className="h-6 w-6 text-teal-500" />
+                      </div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">DB Queries</p>
+                      <p className="text-4xl font-black text-teal-600 dark:text-teal-400">
+                        {routeAnalytics.reduce((sum: number, route: any) => sum + (route?.summary?.databaseQueries || 0), 0).toLocaleString()}
+                      </p>
+                    </div>
+
+                    {/* Avg Cache Hit % */}
+                    <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex flex-col justify-center items-center text-center shadow-sm hover:bg-amber-500/10 transition-colors">
+                      <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-3">
+                        <Zap className="h-6 w-6 text-amber-500" />
+                      </div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Avg Cache Hit %</p>
+                      <p className="text-4xl font-black text-amber-600 dark:text-amber-400">
+                        {(() => {
+                          const withSummary = routeAnalytics.filter((r: any) => r.summary);
+                          if (withSummary.length === 0) return '0.0';
+                          const total = withSummary.reduce((sum: number, route: any) => sum + (route.summary?.cacheHitPercentage || 0), 0);
+                          return (total / withSummary.length).toFixed(1);
+                        })()}%
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity Logs */}
+          <Card className="col-span-3 border-2 shadow-lg h-[600px] flex flex-col">
+            <CardHeader className="border-b bg-gradient-to-r from-primary/5 to-primary/10 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-bold flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    Recent Activity Logs
+                  </CardTitle>
+                  <CardDescription className="mt-1.5 text-xs">
+                    Latest platform activities • {activityLogs.length} entries
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 flex-1 overflow-y-auto activity-logs-content">
+              <div className="space-y-2 pr-2">
+                {loading || loadingActivityLogs ? (
+                  // Skeleton loaders for activity logs
+                  Array.from({ length: 5 }).map((_, index) => (
+                    <div
+                      key={`skeleton-activity-${index}`}
+                      className="flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card"
+                    >
+                      <Skeleton className="h-10 w-10 rounded-lg flex-shrink-0" />
                       <div className="flex-1 space-y-2 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-xs font-semibold px-2 py-1 rounded-md border ${getCategoryColor(log.category)}`}>
-                              {log.category}
-                            </span>
-                            <span className="text-xs text-muted-foreground font-mono">
-                              {log.action.replace(/_/g, ' ')}
-                            </span>
+                            <Skeleton className="h-5 w-16 rounded-md" />
+                            <Skeleton className="h-4 w-24 rounded" />
                           </div>
-                          {index === 0 && (
-                            <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                              Latest
-                            </span>
-                          )}
+                          {index === 0 && <Skeleton className="h-5 w-12 rounded-full" />}
                         </div>
-                        
-                        <p className="text-sm text-foreground leading-relaxed line-clamp-2 font-medium">
-                          {log.description}
-                        </p>
-                        
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
-                            {formatTimeAgo(log.createdAt)}
-                          </p>
-                          {log.processed ? (
-                            <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                              Processed
-                            </span>
-                          ) : (
-                            <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full">
-                              Pending
-                            </span>
-                          )}
+                          <Skeleton className="h-3 w-20" />
+                          <Skeleton className="h-5 w-16 rounded-full" />
                         </div>
                       </div>
-                      
-                      {/* Hover Arrow */}
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </div>
                     </div>
-                  );
-                  })}
-                  {hasMoreActivityLogs && (
-                    <div className="flex justify-center pt-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={loadMoreActivityLogs}
-                        disabled={loadingActivityLogs}
-                        className="gap-2"
-                      >
-                        {loadingActivityLogs ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Loading...
-                          </>
-                        ) : (
-                          <>
-                            Load More
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Activity Log Detail Sheet */}
-      <Sheet
-        open={sheetOpen}
-        close={() => {
-          setSheetOpen(false);
-          setSelectedLog(null);
-        }}
-        title="Activity Log Details"
-      >
-        {selectedLog && (
-          <div className="flex flex-col gap-6 p-6 pt-12 max-h-[80vh] overflow-y-auto custom-scrollbar">
-            {/* Header with Gradient */}
-            <div className="relative -m-6 mb-0 p-6 pb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-t-3xl border-b">
-              <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 border-2 border-primary/30 shadow-lg">
-                  {(() => {
-                    const Icon = getCategoryIcon(selectedLog.category);
-                    return <Icon className="h-7 w-7 text-primary" />;
-                  })()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-2xl font-bold text-foreground mb-1">Activity Log Details</h3>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-primary bg-primary/20 px-3 py-1 rounded-full border border-primary/30">
-                      {selectedLog.category}
-                    </span>
-                    <span className="text-sm text-muted-foreground font-mono">
-                      {selectedLog.action.replace(/_/g, ' ')}
-                    </span>
+                  ))
+                ) : activityLogs.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Activity className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm font-medium">No activity logs available</p>
+                    <p className="text-xs mt-1">Activity logs will appear here</p>
                   </div>
-                </div>
-                {selectedLog.processed ? (
-                  <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-500/20 px-3 py-1.5 rounded-full border border-green-500/30">
-                    ✓ Processed
-                  </span>
                 ) : (
-                  <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-500/20 px-3 py-1.5 rounded-full border border-yellow-500/30">
-                    ⏳ Pending
-                  </span>
+                  <>
+                    {activityLogs.map((log, index) => {
+                      const Icon = getCategoryIcon(log.category);
+                      const getCategoryColor = (category: string) => {
+                        switch (category) {
+                          case 'Vehicle':
+                            return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+                          case 'Route':
+                            return 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20';
+                          case 'Charging':
+                            return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20';
+                          case 'User':
+                            return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20';
+                          default:
+                            return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={log.id}
+                          onClick={() => {
+                            setSelectedLog(log);
+                            setSheetOpen(true);
+                          }}
+                          className="group relative flex items-start gap-3 p-3 rounded-lg border border-border/50 bg-card hover:bg-accent/50 hover:border-primary/30 cursor-pointer transition-all duration-200 hover:shadow-md"
+                        >
+                          {/* Left Icon */}
+                          <div className={`h-10 w-10 rounded-lg ${getCategoryColor(log.category).split(' ')[0]} flex items-center justify-center flex-shrink-0 border ${getCategoryColor(log.category).split(' ')[2]} group-hover:scale-110 transition-transform`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 space-y-2 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-xs font-semibold px-2 py-1 rounded-md border ${getCategoryColor(log.category)}`}>
+                                  {log.category}
+                                </span>
+                                <span className="text-xs text-muted-foreground font-mono">
+                                  {log.action.replace(/_/g, ' ')}
+                                </span>
+                              </div>
+                              {index === 0 && (
+                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                                  Latest
+                                </span>
+                              )}
+                            </div>
+
+                            <p className="text-sm text-foreground leading-relaxed line-clamp-2 font-medium">
+                              {log.description}
+                            </p>
+
+                            <div className="flex items-center justify-between">
+                              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
+                                {formatTimeAgo(log.createdAt)}
+                              </p>
+                              {log.processed ? (
+                                <span className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                  Processed
+                                </span>
+                              ) : (
+                                <span className="text-xs font-medium text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full">
+                                  Pending
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Hover Arrow */}
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <svg className="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {hasMoreActivityLogs && (
+                      <div className="flex justify-center pt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={loadMoreActivityLogs}
+                          disabled={loadingActivityLogs}
+                          className="gap-2"
+                        >
+                          {loadingActivityLogs ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              Load More
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            {/* Main Content */}
-            <div className="space-y-6">
-              {/* Description Card */}
-              <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
-                <h4 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-primary" />
-                  Description
-                </h4>
-                <p className="text-sm text-foreground leading-relaxed">{selectedLog.description}</p>
-              </div>
-
-              {/* Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Category</p>
-                  <p className="text-base font-semibold text-foreground">{selectedLog.category}</p>
-                </div>
-                <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Action</p>
-                  <p className="text-base font-semibold text-foreground font-mono">{selectedLog.action.replace(/_/g, ' ')}</p>
-                </div>
-                <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5 md:col-span-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">User ID</p>
-                  <div className="bg-muted/50 p-2 rounded border">
-                    <UserIdDisplay userId={selectedLog.userId} textClassName="text-foreground" />
+        {/* Activity Log Detail Sheet */}
+        <Sheet
+          open={sheetOpen}
+          close={() => {
+            setSheetOpen(false);
+            setSelectedLog(null);
+          }}
+          title="Activity Log Details"
+        >
+          {selectedLog && (
+            <div className="flex flex-col gap-6 p-6 pt-12 max-h-[80vh] overflow-y-auto custom-scrollbar">
+              {/* Header with Gradient */}
+              <div className="relative -m-6 mb-0 p-6 pb-8 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-t-3xl border-b">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary/20 border-2 border-primary/30 shadow-lg">
+                    {(() => {
+                      const Icon = getCategoryIcon(selectedLog.category);
+                      return <Icon className="h-7 w-7 text-primary" />;
+                    })()}
                   </div>
-                </div>
-                <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5 md:col-span-2">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Created At</p>
-                  <p className="text-sm text-foreground font-medium">{formatDate(selectedLog.createdAt)}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{formatTimeAgo(selectedLog.createdAt)}</p>
-                </div>
-              </div>
-
-              {/* Meta Data */}
-              {selectedLog.meta && Object.keys(selectedLog.meta).length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-base font-bold text-foreground flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-primary" />
-                    Additional Information
-                  </h4>
-                  <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {Object.entries(selectedLog.meta).map(([key, value]) => {
-                        const formattedKey = key
-                          .replace(/([A-Z])/g, ' $1')
-                          .replace(/^./, str => str.toUpperCase())
-                          .trim();
-                        
-                        return (
-                          <div key={key} className="flex flex-col">
-                            <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">{formattedKey}</p>
-                            {typeof value === 'object' && value !== null ? (
-                              <div className="bg-background/80 rounded-lg p-3 border border-border/50 flex-1">
-                                <pre className="text-xs text-foreground whitespace-pre-wrap break-words font-mono leading-relaxed">
-                                  {JSON.stringify(value, null, 2)}
-                                </pre>
-                              </div>
-                            ) : (
-                              <p className="text-sm text-foreground break-words bg-background/50 p-2 rounded border border-border/30 font-medium flex-1">
-                                {String(value)}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-2xl font-bold text-foreground mb-1">Activity Log Details</h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-primary bg-primary/20 px-3 py-1 rounded-full border border-primary/30">
+                        {selectedLog.category}
+                      </span>
+                      <span className="text-sm text-muted-foreground font-mono">
+                        {selectedLog.action.replace(/_/g, ' ')}
+                      </span>
                     </div>
                   </div>
+                  {selectedLog.processed ? (
+                    <span className="text-xs font-semibold text-green-600 dark:text-green-400 bg-green-500/20 px-3 py-1.5 rounded-full border border-green-500/30">
+                      ✓ Processed
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-500/20 px-3 py-1.5 rounded-full border border-yellow-500/30">
+                      ⏳ Pending
+                    </span>
+                  )}
                 </div>
-              )}
+              </div>
 
-              {/* Activity ID Footer */}
-              <div className="bg-muted/30 rounded-lg p-4 border border-border/50 space-y-1.5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</p>
-                <p className="text-xs font-mono text-foreground break-all bg-background/50 p-2 rounded border border-border/30">
-                  {selectedLog.id}
-                </p>
+              {/* Main Content */}
+              <div className="space-y-6">
+                {/* Description Card */}
+                <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                  <h4 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    Description
+                  </h4>
+                  <p className="text-sm text-foreground leading-relaxed">{selectedLog.description}</p>
+                </div>
+
+                {/* Information Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Category</p>
+                    <p className="text-base font-semibold text-foreground">{selectedLog.category}</p>
+                  </div>
+                  <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Action</p>
+                    <p className="text-base font-semibold text-foreground font-mono">{selectedLog.action.replace(/_/g, ' ')}</p>
+                  </div>
+                  <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5 md:col-span-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">User ID</p>
+                    <div className="bg-muted/50 p-2 rounded border">
+                      <UserIdDisplay userId={selectedLog.userId} textClassName="text-foreground" />
+                    </div>
+                  </div>
+                  <div className="bg-card rounded-lg p-4 border border-border/50 space-y-1.5 md:col-span-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Created At</p>
+                    <p className="text-sm text-foreground font-medium">{formatDate(selectedLog.createdAt)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{formatTimeAgo(selectedLog.createdAt)}</p>
+                  </div>
+                </div>
+
+                {/* Meta Data */}
+                {selectedLog.meta && Object.keys(selectedLog.meta).length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-base font-bold text-foreground flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-primary" />
+                      Additional Information
+                    </h4>
+                    <div className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl p-4 border border-border/50">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Object.entries(selectedLog.meta).map(([key, value]) => {
+                          const formattedKey = key
+                            .replace(/([A-Z])/g, ' $1')
+                            .replace(/^./, str => str.toUpperCase())
+                            .trim();
+
+                          return (
+                            <div key={key} className="flex flex-col">
+                              <p className="text-xs font-bold text-primary mb-2 uppercase tracking-wide">{formattedKey}</p>
+                              {typeof value === 'object' && value !== null ? (
+                                <div className="bg-background/80 rounded-lg p-3 border border-border/50 flex-1">
+                                  <pre className="text-xs text-foreground whitespace-pre-wrap break-words font-mono leading-relaxed">
+                                    {JSON.stringify(value, null, 2)}
+                                  </pre>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-foreground break-words bg-background/50 p-2 rounded border border-border/30 font-medium flex-1">
+                                  {String(value)}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Activity ID Footer */}
+                <div className="bg-muted/30 rounded-lg p-4 border border-border/50 space-y-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Activity ID</p>
+                  <p className="text-xs font-mono text-foreground break-all bg-background/50 p-2 rounded border border-border/30">
+                    {selectedLog.id}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </Sheet>
+          )}
+        </Sheet>
       </div>
     </>
   );
