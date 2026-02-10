@@ -17,6 +17,7 @@ import {
   Shield,
   Route,
   Bell,
+  Key,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -107,6 +108,11 @@ const defaultMenuItems: MenuItem[] = [
     title: "Role Management",
     url: "/dashboard/role-management",
     icon: Shield,
+  },
+  {
+    title: "RBAC Sync",
+    url: "/dashboard/rbac-sync",
+    icon: Key,
   },
   {
     title: "Notifications",

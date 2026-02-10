@@ -35,7 +35,7 @@ const buildAuthHeaders = (jwtToken?: string | null) => {
  */
 export const getAdminCachedPermissions = async (): Promise<RBACPermissions> => {
   console.log('🔵 [RBACService] API CALL INITIATED: GET /rbac/cache/admin');
-  
+
   try {
     if (!API_URL) {
       throw new Error('API_URL is not defined in environment');
@@ -77,7 +77,7 @@ export const getAdminCachedPermissions = async (): Promise<RBACPermissions> => {
  */
 export const getSuperAdminCachedPermissions = async (): Promise<RBACPermissions> => {
   console.log('🔵 [RBACService] API CALL INITIATED: GET /rbac/cache/superadmin');
-  
+
   try {
     if (!API_URL) {
       throw new Error('API_URL is not defined in environment');
@@ -131,3 +131,48 @@ export const getCachedPermissionsByRole = async (
   throw new Error(`Unknown role: ${role}. Cannot fetch RBAC permissions.`);
 };
 
+/**
+ * Sync and assign API to a role
+ */
+export const syncAndAssignAPIToRole = async (
+  role: string,
+  operationId: string
+): Promise<any> => {
+  console.log('🔵 [RBACService] API CALL INITIATED: POST /rbac/sync-and-assign-api');
+
+  try {
+    if (!API_URL) {
+      throw new Error('API_URL is not defined in environment');
+    }
+
+    const token = await getManagedToken();
+    const authHeaders = buildAuthHeaders(token);
+
+    console.log('[RBACService] POST /rbac/sync-and-assign-api - Request details:', {
+      hasToken: !!token,
+      url: `${API_URL}/rbac/sync-and-assign-api`,
+      payload: { role, operationId }
+    });
+
+    const response = await axios.post(`${API_URL}/rbac/sync-and-assign-api`, {
+      role,
+      operationId
+    }, {
+      headers: authHeaders,
+    });
+
+    console.log('✅ [RBACService] POST /rbac/sync-and-assign-api - Success:', response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ [RBACService] POST /rbac/sync-and-assign-api - Failed:', error);
+    if (axios.isAxiosError(error)) {
+      console.error('[RBACService] Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+      });
+    }
+    throw error;
+  }
+};

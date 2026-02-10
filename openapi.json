@@ -95,6 +95,30 @@
         "title": "ActionButton represents an interactive button in the response\n",
         "type": "object"
       },
+      "agent.Address": {
+        "properties": {
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "line": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "line",
+          "city",
+          "state",
+          "country"
+        ],
+        "title": "Address represents station address\n",
+        "type": "object"
+      },
       "agent.ButtonParams": {
         "properties": {
           "confirm": {
@@ -123,6 +147,40 @@
           "data"
         ],
         "title": "ButtonParams represents the parameters for an action button\n",
+        "type": "object"
+      },
+      "agent.Connector": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "connectorLabel": {
+            "type": "string"
+          },
+          "connectorType": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "powerKW": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "priceRsPerKwh": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "connectorLabel",
+          "connectorType",
+          "powerKW",
+          "priceRsPerKwh",
+          "available"
+        ],
+        "title": "Connector represents a charging connector for API responses\n",
         "type": "object"
       },
       "agent.ContextData": {
@@ -283,7 +341,7 @@
             "type": "string"
           },
           "userId": {
-            "type": "string"
+            "$ref": "#/components/schemas/primitive.ObjectID"
           },
           "userLocation": {
             "$ref": "#/components/schemas/agent.Location"
@@ -552,6 +610,112 @@
         ],
         "title": "RadioOption represents a single radio button option\n",
         "type": "object"
+      },
+      "agent.StationData": {
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/agent.Address"
+          },
+          "available": {
+            "type": "boolean"
+          },
+          "connectors": {
+            "items": {
+              "$ref": "#/components/schemas/agent.Connector"
+            },
+            "type": "array"
+          },
+          "distance": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "location": {
+            "type": "string"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "location",
+          "address",
+          "latitude",
+          "longitude",
+          "distance",
+          "available",
+          "connectors"
+        ],
+        "title": "StationData represents a charging station in the response\n",
+        "type": "object"
+      },
+      "attachments.Attachment": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deletedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "entityId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "entityType": {
+            "$ref": "#/components/schemas/attachments.EntityType"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "originalName": {
+            "type": "string"
+          },
+          "size": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "storagePath": {
+            "type": "string"
+          },
+          "uploadedBy": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          }
+        },
+        "required": [
+          "_id",
+          "fileName",
+          "originalName",
+          "contentType",
+          "size",
+          "entityType",
+          "entityId",
+          "storagePath",
+          "uploadedBy",
+          "createdAt",
+          "deletedAt"
+        ],
+        "title": "Attachment represents a file attachment stored in GCS with metadata in MongoDB\n",
+        "type": "object"
+      },
+      "attachments.EntityType": {
+        "title": "EntityType represents the type of entity an attachment belongs to\n",
+        "type": "string"
       },
       "attractions.Address": {
         "properties": {
@@ -1011,7 +1175,7 @@
             "type": "string"
           },
           "userId": {
-            "type": "string"
+            "$ref": "#/components/schemas/primitive.ObjectID"
           }
         },
         "required": [
@@ -2297,9 +2461,74 @@
         "title": "ObjectID is the BSON ObjectID type.\n",
         "type": "string"
       },
+      "rbac.AddAPIsToRoleResponse": {
+        "properties": {
+          "added": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "skipped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "operationIds that were not found\n",
+            "type": "array"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "added",
+          "skipped"
+        ],
+        "title": "AddAPIsToRoleResponse represents the response for adding APIs to a role\n",
+        "type": "object"
+      },
+      "rbac.RefreshResponse": {
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message"
+        ],
+        "type": "object"
+      },
       "rbac.Role": {
         "title": "Role represents a user role type.\n",
         "type": "string"
+      },
+      "rbac.SyncAPIsResponse": {
+        "properties": {
+          "count": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "success",
+          "message",
+          "count"
+        ],
+        "title": "SyncAPIsResponse represents the response for syncing APIs\n",
+        "type": "object"
       },
       "referrals.Referral": {
         "properties": {
@@ -2365,6 +2594,9 @@
           "dataSource": {
             "type": "string"
           },
+          "placeId": {
+            "type": "string"
+          },
           "rating": {
             "format": "int64",
             "type": "integer"
@@ -2391,6 +2623,7 @@
           "userId",
           "userName",
           "stationId",
+          "placeId",
           "rating",
           "text",
           "dataSource",
@@ -2447,6 +2680,10 @@
           "id": {
             "$ref": "#/components/schemas/primitive.ObjectID"
           },
+          "placeId": {
+            "title": "Google Place ID, copied from station for direct lookup\n",
+            "type": "string"
+          },
           "reviewId": {
             "$ref": "#/components/schemas/primitive.ObjectID"
           },
@@ -2472,6 +2709,7 @@
           "userId",
           "userType",
           "stationId",
+          "placeId",
           "reviewId",
           "text",
           "createdAt",
@@ -2488,6 +2726,9 @@
           },
           "id": {
             "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "placeId": {
+            "type": "string"
           },
           "reviewId": {
             "$ref": "#/components/schemas/primitive.ObjectID"
@@ -2509,6 +2750,7 @@
           "id",
           "userType",
           "stationId",
+          "placeId",
           "reviewId",
           "text",
           "createdAt",
@@ -2606,14 +2848,14 @@
           "user": {
             "type": "string"
           },
-          "user_id": {
+          "userId": {
             "$ref": "#/components/schemas/primitive.ObjectID"
           }
         },
         "required": [
           "_id",
           "reward_id",
-          "user_id",
+          "userId",
           "user",
           "current_points",
           "total_earned",
@@ -2648,293 +2890,6 @@
         "title": "AddedStation represents a charging station that user added to their route\n",
         "type": "object"
       },
-      "routes.BatteryManagement": {
-        "properties": {
-          "availableRangeKm": {
-            "title": "Available range at start\n",
-            "type": "number"
-          },
-          "batteryBufferAvailable": {
-            "title": "Available battery buffer\n",
-            "type": "number"
-          },
-          "endBatteryPercent": {
-            "title": "Configurable: End battery level\n",
-            "type": "number"
-          },
-          "maxRangeKm": {
-            "title": "Vehicle's maximum range\n",
-            "type": "number"
-          },
-          "requiredRangeKm": {
-            "title": "Required range at end\n",
-            "type": "number"
-          },
-          "requiresCharging": {
-            "title": "Whether route needs charging stops\n",
-            "type": "boolean"
-          },
-          "routeDistanceEstimate": {
-            "title": "Estimated route distance\n",
-            "type": "number"
-          },
-          "safeBatteryPercent": {
-            "title": "Safe buffer level\n",
-            "type": "number"
-          },
-          "startBatteryPercent": {
-            "title": "Configurable: Start battery level\n",
-            "type": "number"
-          },
-          "totalBatteryNeeded": {
-            "title": "Total battery needed for route\n",
-            "type": "number"
-          },
-          "totalChargingCost": {
-            "title": "Total charging cost in rupees\n",
-            "type": "number"
-          },
-          "totalChargingTime": {
-            "format": "int64",
-            "title": "Total charging time in minutes\n",
-            "type": "integer"
-          },
-          "totalJourneyTime": {
-            "format": "int64",
-            "title": "Total journey time (travel + charging) in minutes\n",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "startBatteryPercent",
-          "endBatteryPercent",
-          "safeBatteryPercent",
-          "maxRangeKm",
-          "availableRangeKm",
-          "requiredRangeKm",
-          "routeDistanceEstimate",
-          "totalBatteryNeeded",
-          "batteryBufferAvailable",
-          "requiresCharging",
-          "totalChargingTime",
-          "totalChargingCost",
-          "totalJourneyTime"
-        ],
-        "title": "BatteryManagement represents battery management configuration and calculations\n",
-        "type": "object"
-      },
-      "routes.CandidateRoute": {
-        "properties": {
-          "chargingStops": {
-            "items": {
-              "$ref": "#/components/schemas/routes.ChargingStop"
-            },
-            "type": "array"
-          },
-          "distanceKm": {
-            "type": "number"
-          },
-          "estimatedDurationMin": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "interestStops": {
-            "items": {
-              "$ref": "#/components/schemas/routes.InterestStop"
-            },
-            "type": "array"
-          },
-          "routePolyline": {
-            "type": "string"
-          },
-          "routeScore": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "routeType": {
-            "type": "string"
-          },
-          "steps": {
-            "items": {
-              "$ref": "#/components/schemas/routes.RouteStep"
-            },
-            "type": "array"
-          },
-          "totalChargingCostRs": {
-            "type": "number"
-          },
-          "totalChargingTimeMin": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "totalTravelTimeMin": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "routePolyline",
-          "distanceKm",
-          "estimatedDurationMin",
-          "routeType",
-          "steps",
-          "chargingStops",
-          "totalChargingTimeMin",
-          "totalChargingCostRs",
-          "interestStops",
-          "totalTravelTimeMin",
-          "routeScore"
-        ],
-        "title": "CandidateRoute represents a potential route option\n",
-        "type": "object"
-      },
-      "routes.ChargeStop": {
-        "properties": {
-          "batteryLevel": {
-            "type": "number"
-          },
-          "bestStation": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/routes.NearbyStation"
-              }
-            ],
-            "title": "Best station selected for charging\n"
-          },
-          "distanceFromStart": {
-            "type": "number"
-          },
-          "estimatedChargingCost": {
-            "title": "Charging cost in rupees\n",
-            "type": "number"
-          },
-          "estimatedChargingTime": {
-            "format": "int64",
-            "title": "Charging time in minutes\n",
-            "type": "integer"
-          },
-          "location": {
-            "$ref": "#/components/schemas/routes.Location"
-          },
-          "nearbyStations": {
-            "items": {
-              "$ref": "#/components/schemas/routes.NearbyStation"
-            },
-            "title": "Real station information\n",
-            "type": "array"
-          },
-          "requiredCharge": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "location",
-          "distanceFromStart",
-          "batteryLevel",
-          "requiredCharge",
-          "estimatedChargingTime",
-          "estimatedChargingCost",
-          "nearbyStations",
-          "bestStation"
-        ],
-        "title": "ChargeStop represents a location where charging is needed\n",
-        "type": "object"
-      },
-      "routes.ChargingStop": {
-        "properties": {
-          "arrivalTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "connectorId": {
-            "type": "string"
-          },
-          "departureTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "estimatedTimeMin": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "plannedEnergyKWh": {
-            "type": "number"
-          },
-          "stationId": {
-            "$ref": "#/components/schemas/primitive.ObjectID"
-          }
-        },
-        "required": [
-          "stationId",
-          "connectorId",
-          "plannedEnergyKWh",
-          "estimatedTimeMin",
-          "arrivalTime",
-          "departureTime"
-        ],
-        "title": "ChargingStop represents a planned charging stop during the route\n",
-        "type": "object"
-      },
-      "routes.CreateLocation": {
-        "properties": {
-          "address": {
-            "type": "string"
-          },
-          "lat": {
-            "type": "number"
-          },
-          "lng": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "lat",
-          "lng",
-          "address"
-        ],
-        "title": "CreateLocation represents location data for route creation\n",
-        "type": "object"
-      },
-      "routes.CreateRouteRequest": {
-        "properties": {
-          "departureTime": {
-            "format": "date-time",
-            "title": "Optional departure time, defaults to current time\n",
-            "type": "string"
-          },
-          "endBattery": {
-            "title": "End battery level in %, defaults to 50.0\n",
-            "type": "number"
-          },
-          "from": {
-            "$ref": "#/components/schemas/routes.CreateLocation"
-          },
-          "startBattery": {
-            "title": "Start battery level in %, defaults to 30.0\n",
-            "type": "number"
-          },
-          "to": {
-            "$ref": "#/components/schemas/routes.CreateLocation"
-          },
-          "userId": {
-            "$ref": "#/components/schemas/primitive.ObjectID"
-          },
-          "vehicleId": {
-            "$ref": "#/components/schemas/primitive.ObjectID"
-          }
-        },
-        "required": [
-          "userId",
-          "vehicleId",
-          "from",
-          "to",
-          "departureTime",
-          "startBattery",
-          "endBattery"
-        ],
-        "title": "CreateRouteRequest represents the request for creating a new route\n",
-        "type": "object"
-      },
       "routes.GeoLocation": {
         "properties": {
           "coordinates": {
@@ -2954,97 +2909,6 @@
           "coordinates"
         ],
         "title": "GeoLocation represents a geographical location with coordinates\n",
-        "type": "object"
-      },
-      "routes.InterestStop": {
-        "properties": {
-          "arrivalTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "departureTime": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "geoLocation": {
-            "$ref": "#/components/schemas/routes.GeoLocation"
-          },
-          "name": {
-            "type": "string"
-          },
-          "type": {
-            "title": "cafe, restaurant, shopping, etc.\n",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "type",
-          "geoLocation",
-          "arrivalTime",
-          "departureTime"
-        ],
-        "title": "InterestStop represents a planned interest stop during the route (cafe,\nrestaurant, etc.)\n",
-        "type": "object"
-      },
-      "routes.Location": {
-        "properties": {
-          "geoLocation": {
-            "$ref": "#/components/schemas/routes.GeoLocation"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "name",
-          "geoLocation"
-        ],
-        "title": "Location represents a location with name and coordinates\n",
-        "type": "object"
-      },
-      "routes.NearbyStation": {
-        "properties": {
-          "address": {
-            "type": "string"
-          },
-          "connectors": {
-            "items": {
-              "$ref": "#/components/schemas/routes.StationConnector"
-            },
-            "type": "array"
-          },
-          "distance": {
-            "title": "km from charging point\n",
-            "type": "number"
-          },
-          "geoLocation": {
-            "$ref": "#/components/schemas/routes.GeoLocation"
-          },
-          "id": {
-            "$ref": "#/components/schemas/primitive.ObjectID"
-          },
-          "name": {
-            "type": "string"
-          },
-          "rating": {
-            "type": "number"
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "address",
-          "geoLocation",
-          "distance",
-          "connectors",
-          "status",
-          "rating"
-        ],
-        "title": "NearbyStation represents a charging station near a charging point\n",
         "type": "object"
       },
       "routes.PlanBatteryManagement": {
@@ -3153,12 +3017,6 @@
           "routeType": {
             "type": "string"
           },
-          "steps": {
-            "items": {
-              "$ref": "#/components/schemas/routes.PlanRouteStep"
-            },
-            "type": "array"
-          },
           "totalChargingCostRs": {
             "type": "number"
           },
@@ -3176,7 +3034,6 @@
           "distanceKm",
           "estimatedDurationMin",
           "routeType",
-          "steps",
           "chargingStops",
           "totalChargingTimeMin",
           "totalChargingCostRs",
@@ -3456,6 +3313,44 @@
           "summary"
         ],
         "title": "PlanRouteAnalytics represents analytics data for planroute API calls\n",
+        "type": "object"
+      },
+      "routes.PlanRouteAnalyticsSummary": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "durationMs": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/routes.PlanRouteSummary"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "vehicleId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          }
+        },
+        "required": [
+          "_id",
+          "userId",
+          "vehicleId",
+          "status",
+          "createdAt",
+          "durationMs",
+          "summary"
+        ],
+        "title": "PlanRouteAnalyticsSummary is a lightweight view for listing analytics (excludes\nheavy APIResponse and full ConsoleLogs to avoid bufio.Scanner token-too-long in\nEncore dashboard).\n",
         "type": "object"
       },
       "routes.PlanRouteRequest": {
@@ -3833,113 +3728,6 @@
         "title": "PlanWaypoint represents an intermediate stop in the route\n",
         "type": "object"
       },
-      "routes.RouteAnalysis": {
-        "properties": {
-          "chargeStops": {
-            "items": {
-              "$ref": "#/components/schemas/routes.ChargeStop"
-            },
-            "type": "array"
-          },
-          "route": {
-            "$ref": "#/components/schemas/routes.CandidateRoute"
-          },
-          "routeIndex": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "score": {
-            "type": "number"
-          },
-          "totalChargingCost": {
-            "type": "number"
-          },
-          "totalChargingTime": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "totalJourneyTime": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "routeIndex",
-          "route",
-          "chargeStops",
-          "totalChargingTime",
-          "totalChargingCost",
-          "totalJourneyTime",
-          "score"
-        ],
-        "title": "RouteAnalysis represents the analysis of a route including charge stops and\nscoring\n",
-        "type": "object"
-      },
-      "routes.RouteStep": {
-        "properties": {
-          "distanceKm": {
-            "type": "number"
-          },
-          "durationMin": {
-            "format": "int64",
-            "type": "integer"
-          },
-          "endLocation": {
-            "$ref": "#/components/schemas/routes.Location"
-          },
-          "instruction": {
-            "type": "string"
-          },
-          "startLocation": {
-            "$ref": "#/components/schemas/routes.Location"
-          }
-        },
-        "required": [
-          "instruction",
-          "distanceKm",
-          "durationMin",
-          "startLocation",
-          "endLocation"
-        ],
-        "title": "RouteStep represents a step in the route with detailed instructions\n",
-        "type": "object"
-      },
-      "routes.RouteVehicleRange": {
-        "properties": {
-          "rangeKm": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "rangeKm"
-        ],
-        "title": "RouteVehicleRange represents vehicle range information for routes\n",
-        "type": "object"
-      },
-      "routes.RouteVehicleSpecs": {
-        "properties": {
-          "batteryCapacityKWh": {
-            "type": "number"
-          },
-          "efficiencyWhPerKm": {
-            "type": "number"
-          },
-          "maxChargingPowerKw": {
-            "type": "number"
-          },
-          "weightKg": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "batteryCapacityKWh",
-          "efficiencyWhPerKm",
-          "maxChargingPowerKw",
-          "weightKg"
-        ],
-        "title": "RouteVehicleSpecs represents vehicle specifications for routes\n",
-        "type": "object"
-      },
       "routes.SavedRoute": {
         "properties": {
           "createdAt": {
@@ -3963,74 +3751,6 @@
           "createdAt"
         ],
         "title": "SavedRoute represents a user's saved route\n",
-        "type": "object"
-      },
-      "routes.StationConnector": {
-        "properties": {
-          "available": {
-            "type": "boolean"
-          },
-          "connectorType": {
-            "type": "string"
-          },
-          "id": {
-            "$ref": "#/components/schemas/primitive.ObjectID"
-          },
-          "powerKW": {
-            "type": "number"
-          },
-          "priceRsPerKwh": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "id",
-          "connectorType",
-          "powerKW",
-          "priceRsPerKwh",
-          "available"
-        ],
-        "title": "StationConnector represents a connector at a charging station\n",
-        "type": "object"
-      },
-      "routes.VehicleDetails": {
-        "properties": {
-          "id": {
-            "$ref": "#/components/schemas/primitive.ObjectID"
-          },
-          "make": {
-            "type": "string"
-          },
-          "model": {
-            "type": "string"
-          },
-          "range": {
-            "$ref": "#/components/schemas/routes.RouteVehicleRange"
-          },
-          "specs": {
-            "$ref": "#/components/schemas/routes.RouteVehicleSpecs"
-          },
-          "title": {
-            "type": "string"
-          },
-          "variant": {
-            "type": "string"
-          },
-          "vehicleType": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "title",
-          "make",
-          "model",
-          "variant",
-          "vehicleType",
-          "range",
-          "specs"
-        ],
-        "title": "VehicleDetails represents essential vehicle information for route planning\n",
         "type": "object"
       },
       "sessions.ChargingSession": {
@@ -4186,6 +3906,9 @@
           "available": {
             "type": "boolean"
           },
+          "connectorLabel": {
+            "type": "string"
+          },
           "connectorType": {
             "type": "string"
           },
@@ -4200,11 +3923,38 @@
         },
         "required": [
           "_id",
+          "connectorLabel",
           "connectorType",
           "powerKW",
           "priceRsPerKwh",
           "available"
         ],
+        "type": "object"
+      },
+      "stations.DeletionSummary": {
+        "properties": {
+          "attractionsDeleted": {
+            "format": "int64",
+            "title": "Number of attractions deleted\n",
+            "type": "integer"
+          },
+          "reviewsDeleted": {
+            "format": "int64",
+            "title": "Number of reviews deleted\n",
+            "type": "integer"
+          },
+          "stationsDeleted": {
+            "format": "int64",
+            "title": "Number of stations deleted\n",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "attractionsDeleted",
+          "reviewsDeleted",
+          "stationsDeleted"
+        ],
+        "title": "DeletionSummary represents the summary of deletion operations\n",
         "type": "object"
       },
       "stations.GeoLocation": {
@@ -4225,6 +3975,22 @@
           "type",
           "coordinates"
         ],
+        "type": "object"
+      },
+      "stations.Location": {
+        "properties": {
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "latitude",
+          "longitude"
+        ],
+        "title": "Location represents coordinates\n",
         "type": "object"
       },
       "stations.NearbyAttraction": {
@@ -4378,6 +4144,202 @@
           "createdAt",
           "updatedAt"
         ],
+        "type": "object"
+      },
+      "stations.StationSearchAnalytics": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "clerkId": {
+            "type": "string"
+          },
+          "geoLocation": {
+            "$ref": "#/components/schemas/stations.GeoLocation"
+          },
+          "location": {
+            "properties": {
+              "admin": {
+                "properties": {
+                  "city": {
+                    "type": "string"
+                  },
+                  "country": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "country",
+                  "state",
+                  "city"
+                ],
+                "type": "object"
+              },
+              "geohash": {
+                "type": "string"
+              },
+              "lat": {
+                "type": "number"
+              },
+              "lng": {
+                "type": "number"
+              },
+              "placeId": {
+                "type": "string"
+              },
+              "query": {
+                "type": "string"
+              },
+              "radius": {
+                "format": "int64",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "lat",
+              "lng",
+              "radius",
+              "placeId",
+              "query",
+              "geohash",
+              "admin"
+            ],
+            "type": "object"
+          },
+          "queryType": {
+            "type": "string"
+          },
+          "requestMeta": {
+            "properties": {
+              "clientAppVersion": {
+                "type": "string"
+              },
+              "device": {
+                "type": "object"
+              },
+              "filters": {
+                "type": "object"
+              },
+              "ip": {
+                "type": "string"
+              },
+              "minStations": {
+                "format": "int64",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "minStations",
+              "filters",
+              "clientAppVersion",
+              "device",
+              "ip"
+            ],
+            "type": "object"
+          },
+          "requestSource": {
+            "type": "string"
+          },
+          "resultMeta": {
+            "properties": {
+              "cacheHit": {
+                "type": "boolean"
+              },
+              "count": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "errorCode": {
+                "type": "string"
+              },
+              "googleCall": {
+                "type": "boolean"
+              },
+              "responseMs": {
+                "format": "int64",
+                "type": "integer"
+              },
+              "status": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "count",
+              "cacheHit",
+              "googleCall",
+              "responseMs",
+              "status",
+              "errorCode"
+            ],
+            "type": "object"
+          },
+          "timestamp": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          }
+        },
+        "required": [
+          "_id",
+          "timestamp",
+          "userId",
+          "clerkId",
+          "requestSource",
+          "queryType",
+          "location",
+          "geoLocation",
+          "requestMeta",
+          "resultMeta"
+        ],
+        "title": "StationSearchAnalytics represents analytics data for station search API calls\n",
+        "type": "object"
+      },
+      "stations.StationSummary": {
+        "properties": {
+          "_id": {
+            "$ref": "#/components/schemas/primitive.ObjectID"
+          },
+          "address": {
+            "$ref": "#/components/schemas/stations.Address"
+          },
+          "allowBooking": {
+            "type": "boolean"
+          },
+          "connectors": {
+            "items": {
+              "$ref": "#/components/schemas/stations.Connector"
+            },
+            "type": "array"
+          },
+          "geoLocation": {
+            "$ref": "#/components/schemas/stations.GeoLocation"
+          },
+          "name": {
+            "type": "string"
+          },
+          "placeId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "placeId",
+          "name",
+          "address",
+          "connectors",
+          "geoLocation",
+          "allowBooking",
+          "status"
+        ],
+        "title": "StationSummary represents a trimmed version of Station with only essential\nfields for streaming\n",
         "type": "object"
       },
       "stations.WorkingHours": {
@@ -4883,12 +4845,6 @@
           "userStatus": {
             "title": "User status: active, inactive, signed_in, logged_out, account_deleted,\nsuspended, banned, guest, blocked, other\n",
             "type": "string"
-          },
-          "vehicles": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
           }
         },
         "required": [
@@ -4907,7 +4863,6 @@
           "userRole",
           "notificationSettings",
           "interests",
-          "vehicles",
           "energyAnalytics",
           "userImage",
           "savedRoutes",
@@ -4957,6 +4912,20 @@
           "createdAt"
         ],
         "title": "UserProfileStatus represents the user profile completion status\n",
+        "type": "object"
+      },
+      "vehicles.AddVehicleRangeRequest": {
+        "properties": {
+          "rangeKm": {
+            "format": "int64",
+            "title": "Range in kilometers\n",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "rangeKm"
+        ],
+        "title": "AddVehicleRangeRequest represents a simple range request with only rangeKm\n",
         "type": "object"
       },
       "vehicles.Charging": {
@@ -5015,107 +4984,18 @@
         "title": "Range represents the vehicle range specifications\n",
         "type": "object"
       },
-      "vehicles.UpdateVehicleChargingRequest": {
-        "description": "Type-specific: validation enforced based on vehicleType\n",
-        "properties": {
-          "chargingTime": {
-            "type": "string"
-          },
-          "chargingTime0To100": {
-            "title": "Only for bikes/scooters\n",
-            "type": "string"
-          },
-          "chargingTime0To80": {
-            "title": "Only for bikes/scooters\n",
-            "type": "string"
-          },
-          "chargingTimeAC": {
-            "title": "Only for cars\n",
-            "type": "string"
-          },
-          "chargingTimeDC": {
-            "title": "Only for cars\n",
-            "type": "string"
-          }
-        },
-        "required": [
-          "chargingTime",
-          "chargingTime0To80",
-          "chargingTime0To100",
-          "chargingTimeAC",
-          "chargingTimeDC"
-        ],
-        "title": "UpdateVehicleChargingRequest represents charging data in update requests\n",
-        "type": "object"
-      },
       "vehicles.UpdateVehicleRangeRequest": {
-        "description": "Type-specific: validation enforced based on vehicleType\n",
         "properties": {
           "rangeKm": {
             "format": "int64",
-            "type": "integer"
-          },
-          "rangeKmEcoMode": {
-            "format": "int64",
-            "title": "Only for bikes/scooters\n",
-            "type": "integer"
-          },
-          "rangeKmNormalMode": {
-            "format": "int64",
-            "title": "Only for bikes/scooters\n",
-            "type": "integer"
-          },
-          "rangeKmSportMode": {
-            "format": "int64",
-            "title": "Only for bikes/scooters\n",
+            "title": "Range in kilometers\n",
             "type": "integer"
           }
         },
         "required": [
-          "rangeKm",
-          "rangeKmEcoMode",
-          "rangeKmNormalMode",
-          "rangeKmSportMode"
+          "rangeKm"
         ],
-        "title": "UpdateVehicleRangeRequest represents range data in update requests\n",
-        "type": "object"
-      },
-      "vehicles.UpdateVehicleSpecificationsRequest": {
-        "description": "Type-specific: validation enforced based on vehicleType\n",
-        "properties": {
-          "batteryCapacityKWh": {
-            "type": "number"
-          },
-          "chargingAtHome": {
-            "title": "Two-wheeler specific fields\n",
-            "type": "boolean"
-          },
-          "chargingAtStation": {
-            "title": "Only for bikes/scooters\n",
-            "type": "boolean"
-          },
-          "chargingPort": {
-            "title": "Only for cars\n",
-            "type": "string"
-          },
-          "fastCharging": {
-            "type": "boolean"
-          },
-          "motorPowerKW": {
-            "format": "int64",
-            "title": "Car-specific fields\n",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "batteryCapacityKWh",
-          "fastCharging",
-          "motorPowerKW",
-          "chargingPort",
-          "chargingAtHome",
-          "chargingAtStation"
-        ],
-        "title": "UpdateVehicleSpecificationsRequest represents specifications in update requests\n",
+        "title": "UpdateVehicleRangeRequest represents a simple range update with only rangeKm\n",
         "type": "object"
       },
       "vehicles.Vehicle": {
@@ -5971,6 +5851,13 @@
                     },
                     "sessionId": {
                       "type": "string"
+                    },
+                    "stations": {
+                      "items": {
+                        "$ref": "#/components/schemas/agent.StationData"
+                      },
+                      "title": "Station data for display\n",
+                      "type": "array"
                     }
                   },
                   "required": [
@@ -5981,7 +5868,8 @@
                     "actions",
                     "buttons",
                     "context",
-                    "flowQuestion"
+                    "flowQuestion",
+                    "stations"
                   ],
                   "type": "object"
                 }
@@ -6126,6 +6014,67 @@
           }
         },
         "summary": "GetSessionSummary retrieves a summary of a conversation session\n"
+      }
+    },
+    "/agent/thoughts": {
+      "post": {
+        "operationId": "POST:agent.Thoughts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "destination": {
+                    "title": "Required: destination location\n",
+                    "type": "string"
+                  },
+                  "startingpoint": {
+                    "title": "Required: starting location\n",
+                    "type": "string"
+                  },
+                  "waypoint": {
+                    "title": "Optional: waypoint location\n",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "startingpoint",
+                  "destination",
+                  "waypoint"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "thoughts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "title": "Short trivia/thoughts for loading screen (up to 10)\n",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "thoughts"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "Thoughts processes route planning thoughts with starting point, destination,\nand optional waypoint\n"
       }
     },
     "/agent/users/{userId}/stats": {
@@ -6391,6 +6340,343 @@
         "summary": "UpdateProfile updates user profile information\n"
       }
     },
+    "/attachments/delete/{id}": {
+      "delete": {
+        "operationId": "DELETE:attachments.DeleteAttachment",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteAttachment soft deletes an attachment\n"
+      }
+    },
+    "/attachments/detail/{id}": {
+      "get": {
+        "operationId": "GET:attachments.GetAttachment",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attachment": {
+                      "$ref": "#/components/schemas/attachments.Attachment"
+                    }
+                  },
+                  "required": [
+                    "attachment"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetAttachment retrieves attachment metadata by ID\n"
+      }
+    },
+    "/attachments/download/{id}": {
+      "get": {
+        "operationId": "GET:attachments.DownloadAttachment",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "contentType": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "format": "byte",
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "contentType",
+                    "fileName"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DownloadAttachment downloads attachment content from GCS\n"
+      }
+    },
+    "/attachments/entity/{entityType}/{entityId}": {
+      "get": {
+        "operationId": "GET:attachments.ListAttachments",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "entityType",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "entityId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "attachments": {
+                      "items": {
+                        "$ref": "#/components/schemas/attachments.Attachment"
+                      },
+                      "type": "array"
+                    },
+                    "total": {
+                      "format": "int64",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "attachments",
+                    "total"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "ListAttachments lists all attachments for a specific entity\n"
+      }
+    },
+    "/attachments/upload": {
+      "post": {
+        "operationId": "POST:attachments.UploadAttachment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "contentType": {
+                    "type": "string"
+                  },
+                  "entityId": {
+                    "type": "string"
+                  },
+                  "entityType": {
+                    "type": "string"
+                  },
+                  "fileData": {
+                    "format": "byte",
+                    "type": "string"
+                  },
+                  "fileName": {
+                    "type": "string"
+                  },
+                  "uploadedBy": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "entityType",
+                  "entityId",
+                  "fileData",
+                  "fileName",
+                  "contentType",
+                  "uploadedBy"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "storagePath": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "storagePath",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "UploadAttachment uploads a new attachment to GCS and stores metadata in MongoDB\n"
+      }
+    },
+    "/attractions.DeleteOldAttractions": {
+      "get": {
+        "operationId": "GET:attractions.DeleteOldAttractions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletedCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "deletedCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteOldAttractions removes all attractions that are older than 30 days as per\nTTL\n"
+      },
+      "post": {
+        "operationId": "POST:attractions.DeleteOldAttractions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletedCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "deletedCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteOldAttractions removes all attractions that are older than 30 days as per\nTTL\n"
+      }
+    },
     "/attractions/by-type": {
       "post": {
         "operationId": "POST:attractions.GetAttractionsByType",
@@ -6449,6 +6735,88 @@
         "summary": "GetAttractionsByType gets attractions by type/category\n"
       }
     },
+    "/attractions/cleanup-nearby/{stationId}": {
+      "get": {
+        "description": "stationId is the MongoDB ObjectID of the station (path parameter).\n",
+        "operationId": "GET:attractions.CleanupAttractionsNearby",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "stationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletedCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "stationId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "deletedCount",
+                    "stationId"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "CleanupAttractionsNearby deletes attractions from ev_nearby_attractions within\n1km of the given station.\n"
+      }
+    },
+    "/attractions/count": {
+      "get": {
+        "operationId": "GET:attractions.GetTotalAttractionsCount",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "totalCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "totalCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetTotalAttractionsCount returns the total count of attractions in the database\n"
+      }
+    },
     "/attractions/get": {
       "post": {
         "operationId": "POST:attractions.GetAttraction",
@@ -6503,18 +6871,23 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "placeId": {
+                    "title": "Google Place ID; used when stationId is not provided\n",
+                    "type": "string"
+                  },
                   "radius": {
                     "format": "int64",
                     "title": "Radius in meters to search for attractions\n",
                     "type": "integer"
                   },
                   "stationId": {
-                    "title": "Station ObjectID to search around\n",
+                    "title": "Station ObjectID; if empty, placeId is used to find station\n",
                     "type": "string"
                   }
                 },
                 "required": [
                   "stationId",
+                  "placeId",
                   "radius"
                 ],
                 "type": "object"
@@ -6573,18 +6946,23 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "placeId": {
+                    "title": "Google Place ID; used when stationId is not provided\n",
+                    "type": "string"
+                  },
                   "radius": {
                     "format": "int64",
                     "title": "Radius in meters to search for attractions\n",
                     "type": "integer"
                   },
                   "stationId": {
-                    "title": "Station ObjectID to search around\n",
+                    "title": "Station ObjectID; if empty, placeId is used to find station\n",
                     "type": "string"
                   }
                 },
                 "required": [
                   "stationId",
+                  "placeId",
                   "radius"
                 ],
                 "type": "object"
@@ -6635,6 +7013,20 @@
         "summary": "SearchNearbyAllAttractions searches for nearby attractions and fetches more if\nneeded\n"
       }
     },
+    "/attractions/search-nearby-all-stream": {
+      "post": {
+        "operationId": "POST:attractions.SearchNearbyAllAttractionsStream",
+        "responses": {
+          "200": {
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "SearchNearbyAllAttractionsStream streams nearby attractions via SSE: DB first,\nthen Maps if below minAttractions; upsert runs async.\n"
+      }
+    },
     "/attractions/upsert-from-maps": {
       "post": {
         "operationId": "POST:attractions.UpsertAttractionsFromMaps",
@@ -6649,7 +7041,7 @@
                     "type": "integer"
                   },
                   "stationId": {
-                    "title": "Single station ObjectID to search around\n",
+                    "title": "Station ObjectID to search around\n",
                     "type": "string"
                   }
                 },
@@ -7380,6 +7772,9 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "placeId": {
+                    "type": "string"
+                  },
                   "reviewId": {
                     "type": "string"
                   },
@@ -7400,6 +7795,7 @@
                   "userId",
                   "userType",
                   "stationId",
+                  "placeId",
                   "reviewId",
                   "text"
                 ],
@@ -7525,22 +7921,31 @@
         "summary": "GetReviewComments returns all comments for a specific review\n"
       }
     },
-    "/comments/stations/{stationId}": {
-      "get": {
-        "operationId": "GET:reviews.GetStationComments",
-        "parameters": [
-          {
-            "allowEmptyValue": true,
-            "explode": false,
-            "in": "path",
-            "name": "stationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
+    "/comments/stations": {
+      "post": {
+        "description": "Provide either station\\_id (MongoDB ObjectID) or place\\_id (Google Places ID) in the request body; station\\_id takes precedence.\n",
+        "operationId": "POST:reviews.GetStationComments",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "place_id": {
+                    "type": "string"
+                  },
+                  "station_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "station_id",
+                  "place_id"
+                ],
+                "type": "object"
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "200": {
             "content": {
@@ -7567,7 +7972,7 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "GetStationComments returns all comments for a specific charging station\n"
+        "summary": "GetStationComments returns all comments for a specific charging station.\n"
       }
     },
     "/comments/users/{userId}": {
@@ -8230,10 +8635,10 @@
         "summary": "GetUserCreditsSummary returns a comprehensive summary of user's credits\nincluding breakdown\n"
       }
     },
-    "/cronjobs.CleanupOldStations": {
+    "/cronjobs.CleanupOldData": {
       "get": {
-        "description": "It calls the stations.DeleteOldStations API.\n",
-        "operationId": "GET:cronjobs.CleanupOldStations",
+        "description": "It calls the stations.DeleteOldStations and attractions.DeleteOldAttractions APIs.\n",
+        "operationId": "GET:cronjobs.CleanupOldData",
         "responses": {
           "200": {
             "description": "Success response"
@@ -8242,11 +8647,11 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "CleanupOldStations deletes all stations older than 30 days from the database.\n"
+        "summary": "CleanupOldData deletes all stations and attractions older than 30 days from the\ndatabase.\n"
       },
       "post": {
-        "description": "It calls the stations.DeleteOldStations API.\n",
-        "operationId": "POST:cronjobs.CleanupOldStations",
+        "description": "It calls the stations.DeleteOldStations and attractions.DeleteOldAttractions APIs.\n",
+        "operationId": "POST:cronjobs.CleanupOldData",
         "responses": {
           "200": {
             "description": "Success response"
@@ -8255,7 +8660,7 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "CleanupOldStations deletes all stations older than 30 days from the database.\n"
+        "summary": "CleanupOldData deletes all stations and attractions older than 30 days from the\ndatabase.\n"
       }
     },
     "/cronjobs.ResetAllUsersCredits": {
@@ -11494,11 +11899,18 @@
                   },
                   "userId": {
                     "type": "string"
+                  },
+                  "variables": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
                   }
                 },
                 "required": [
                   "userId",
-                  "triggerEvent"
+                  "triggerEvent",
+                  "variables"
                 ],
                 "type": "object"
               }
@@ -11561,11 +11973,18 @@
                       "type": "string"
                     },
                     "type": "array"
+                  },
+                  "variables": {
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "type": "object"
                   }
                 },
                 "required": [
                   "userIds",
-                  "triggerEvent"
+                  "triggerEvent",
+                  "variables"
                 ],
                 "type": "object"
               }
@@ -11660,6 +12079,52 @@
           }
         },
         "summary": "GetUserNotifications returns notifications for a specific user\n"
+      }
+    },
+    "/notifications/{notificationId}": {
+      "delete": {
+        "operationId": "DELETE:notifications.DeleteNotification",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "notificationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteNotification deletes a notification by ID\n"
       }
     },
     "/notifications/{notificationId}/mark-read": {
@@ -13581,6 +14046,67 @@
         "summary": "RemoveAPIsFromRoleUser removes APIs from the RoleUser document based on\noperationIds\n"
       }
     },
+    "/rbac/sync-and-assign-api": {
+      "post": {
+        "description": "1\\. Syncs all APIs from OpenAPI \u0026 private annotations into the SuperAdmin document. 2. Adds the specified operationId to the requested role (User/Admin). 3. Refreshes the in-memory permissions cache for that role.\n",
+        "operationId": "POST:rbac.SyncAndAssignAPIToRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "operationId": {
+                    "title": "e.g. \"GET:routes.GetPlanRouteAnalyticsByID\"\n",
+                    "type": "string"
+                  },
+                  "role": {
+                    "title": "user, admin, superadmin\n",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "role",
+                  "operationId"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "assign": {
+                      "$ref": "#/components/schemas/rbac.AddAPIsToRoleResponse"
+                    },
+                    "refresh": {
+                      "$ref": "#/components/schemas/rbac.RefreshResponse"
+                    },
+                    "sync": {
+                      "$ref": "#/components/schemas/rbac.SyncAPIsResponse"
+                    }
+                  },
+                  "required": [
+                    "sync",
+                    "assign",
+                    "refresh"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "SyncAndAssignAPIToRole runs the full flow needed to add an API to a role:\n"
+      }
+    },
     "/rbac/sync-apis": {
       "post": {
         "operationId": "POST:rbac.SyncAPIsToDatabase",
@@ -14124,6 +14650,46 @@
       }
     },
     "/reviews/review/{reviewId}": {
+      "delete": {
+        "operationId": "DELETE:reviews.DeleteReview",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "reviewId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteReview removes a review from the system by its ID\n"
+      },
       "get": {
         "operationId": "GET:reviews.GetReview",
         "parameters": [
@@ -14165,22 +14731,31 @@
         "summary": "GetReview returns a specific review by its ID\n"
       }
     },
-    "/reviews/stations/{stationId}": {
-      "get": {
-        "operationId": "GET:reviews.GetStationReviews",
-        "parameters": [
-          {
-            "allowEmptyValue": true,
-            "explode": false,
-            "in": "path",
-            "name": "stationId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
+    "/reviews/stations": {
+      "post": {
+        "description": "Provide either station\\_id (MongoDB ObjectID) or place\\_id (Google Places ID) in the request body; station\\_id takes precedence.\n",
+        "operationId": "POST:reviews.GetStationReviews",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "place_id": {
+                    "type": "string"
+                  },
+                  "station_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "station_id",
+                  "place_id"
+                ],
+                "type": "object"
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "200": {
             "content": {
@@ -14207,7 +14782,54 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "GetStationReviews returns all reviews for a specific charging station\n"
+        "summary": "GetStationReviews returns all reviews for a specific charging station.\n"
+      }
+    },
+    "/reviews/stations/{stationId}": {
+      "delete": {
+        "operationId": "DELETE:reviews.DeleteStationReviews",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "stationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletedCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "deletedCount"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "DeleteStationReviews removes all reviews for a specific charging station\n"
       }
     },
     "/reviews/users/{userId}": {
@@ -14256,46 +14878,6 @@
       }
     },
     "/reviews/{reviewId}": {
-      "delete": {
-        "operationId": "DELETE:reviews.DeleteReview",
-        "parameters": [
-          {
-            "allowEmptyValue": true,
-            "explode": false,
-            "in": "path",
-            "name": "reviewId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success response"
-          },
-          "default": {
-            "$ref": "#/components/responses/APIError"
-          }
-        },
-        "summary": "DeleteReview removes a review from the system by its ID\n"
-      },
       "put": {
         "operationId": "PUT:reviews.UpdateReview",
         "parameters": [
@@ -16265,7 +16847,7 @@
                   "properties": {
                     "analytics": {
                       "items": {
-                        "$ref": "#/components/schemas/routes.PlanRouteAnalytics"
+                        "$ref": "#/components/schemas/routes.PlanRouteAnalyticsSummary"
                       },
                       "type": "array"
                     }
@@ -16283,100 +16865,37 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "GetPlanRouteAnalytics retrieves all analytics data from ev_planroute_analytics\ntable\n"
+        "summary": "GetPlanRouteAnalytics retrieves analytics from ev_planroute_analytics. Returns\na lightweight summary only (no full APIResponse) so response size stays within\nEncore dashboard limits.\n"
       }
     },
-    "/routes/create": {
-      "post": {
-        "operationId": "POST:routes.CreateRoute",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "departureTime": {
-                    "format": "date-time",
-                    "title": "Optional departure time, defaults to current time\n",
-                    "type": "string"
-                  },
-                  "endBattery": {
-                    "title": "End battery level in %, defaults to 50.0\n",
-                    "type": "number"
-                  },
-                  "from": {
-                    "$ref": "#/components/schemas/routes.CreateLocation"
-                  },
-                  "startBattery": {
-                    "title": "Start battery level in %, defaults to 30.0\n",
-                    "type": "number"
-                  },
-                  "to": {
-                    "$ref": "#/components/schemas/routes.CreateLocation"
-                  },
-                  "userId": {
-                    "$ref": "#/components/schemas/primitive.ObjectID"
-                  },
-                  "vehicleId": {
-                    "$ref": "#/components/schemas/primitive.ObjectID"
-                  }
-                },
-                "required": [
-                  "userId",
-                  "vehicleId",
-                  "from",
-                  "to",
-                  "departureTime",
-                  "startBattery",
-                  "endBattery"
-                ],
-                "type": "object"
-              }
-            }
+    "/routes/analytics/{id}": {
+      "get": {
+        "operationId": "GET:routes.GetPlanRouteAnalyticsByID",
+        "parameters": [
+          {
+            "allowEmptyValue": true,
+            "explode": false,
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
           }
-        },
+        ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
-                    "batteryManagement": {
-                      "$ref": "#/components/schemas/routes.BatteryManagement"
-                    },
-                    "bestRouteIndex": {
-                      "format": "int64",
-                      "title": "Index of the best route\n",
-                      "type": "integer"
-                    },
-                    "input": {
-                      "$ref": "#/components/schemas/routes.CreateRouteRequest"
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "routeAnalyses": {
-                      "items": {
-                        "$ref": "#/components/schemas/routes.RouteAnalysis"
-                      },
-                      "title": "Complete analysis of all routes\n",
-                      "type": "array"
-                    },
-                    "routeCount": {
-                      "format": "int64",
-                      "type": "integer"
-                    },
-                    "vehicle": {
-                      "$ref": "#/components/schemas/routes.VehicleDetails"
+                    "analytics": {
+                      "$ref": "#/components/schemas/routes.PlanRouteAnalytics"
                     }
                   },
                   "required": [
-                    "message",
-                    "input",
-                    "vehicle",
-                    "batteryManagement",
-                    "routeCount",
-                    "routeAnalyses",
-                    "bestRouteIndex"
+                    "analytics"
                   ],
                   "type": "object"
                 }
@@ -16388,7 +16907,7 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "CreateRoute creates a new route (simple version - just returns input)\n"
+        "summary": "GetPlanRouteAnalyticsByID retrieves the full analytics document (including\nAPIResponse and ConsoleLogs) for a single entry.\n"
       }
     },
     "/routes/generate-polyline-with-stations": {
@@ -16610,7 +17129,152 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "PlanRoute creates a new route plan (exact replica of CreateRoute with separate\ntypes)\n"
+        "summary": "PlanRoute creates a new route plan\n"
+      }
+    },
+    "/routes/plan-route-backup": {
+      "post": {
+        "operationId": "POST:routes.PlanRouteBackup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "departureTime": {
+                    "format": "date-time",
+                    "title": "Optional departure time, defaults to current time\n",
+                    "type": "string"
+                  },
+                  "endBattery": {
+                    "title": "End battery level in %, defaults to 50.0\n",
+                    "type": "number"
+                  },
+                  "from": {
+                    "$ref": "#/components/schemas/routes.PlanLocation"
+                  },
+                  "startBattery": {
+                    "title": "Start battery level in %, defaults to 30.0\n",
+                    "type": "number"
+                  },
+                  "to": {
+                    "$ref": "#/components/schemas/routes.PlanLocation"
+                  },
+                  "userId": {
+                    "$ref": "#/components/schemas/primitive.ObjectID"
+                  },
+                  "vehicleId": {
+                    "$ref": "#/components/schemas/primitive.ObjectID"
+                  },
+                  "waypoints": {
+                    "items": {
+                      "$ref": "#/components/schemas/routes.PlanLocation"
+                    },
+                    "title": "Optional intermediate stops (max 10)\n",
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "userId",
+                  "vehicleId",
+                  "from",
+                  "to",
+                  "waypoints",
+                  "departureTime",
+                  "startBattery",
+                  "endBattery"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "apiCallCount": {
+                      "format": "int64",
+                      "title": "Number of Google Maps API calls made\n",
+                      "type": "integer"
+                    },
+                    "batteryManagement": {
+                      "$ref": "#/components/schemas/routes.PlanBatteryManagement"
+                    },
+                    "bestRouteIndex": {
+                      "format": "int64",
+                      "title": "Index of the best route\n",
+                      "type": "integer"
+                    },
+                    "input": {
+                      "$ref": "#/components/schemas/routes.PlanRouteRequest"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "routeAnalyses": {
+                      "items": {
+                        "$ref": "#/components/schemas/routes.PlanRouteAnalysis"
+                      },
+                      "title": "Complete analysis of all routes\n",
+                      "type": "array"
+                    },
+                    "routeCount": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "routeId": {
+                      "title": "Unique ID for async station fetching\n",
+                      "type": "string"
+                    },
+                    "routeSegments": {
+                      "items": {
+                        "$ref": "#/components/schemas/routes.PlanRouteSegment"
+                      },
+                      "title": "Segments between stops\n",
+                      "type": "array"
+                    },
+                    "stationsStatus": {
+                      "title": "\"loading\", \"completed\", \"failed\"\n",
+                      "type": "string"
+                    },
+                    "vehicle": {
+                      "$ref": "#/components/schemas/routes.PlanVehicleDetails"
+                    },
+                    "waypoints": {
+                      "items": {
+                        "$ref": "#/components/schemas/routes.PlanWaypoint"
+                      },
+                      "title": "Intermediate stops with arrival times\n",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "input",
+                    "vehicle",
+                    "batteryManagement",
+                    "routeCount",
+                    "routeAnalyses",
+                    "bestRouteIndex",
+                    "waypoints",
+                    "routeSegments",
+                    "apiCallCount",
+                    "routeId",
+                    "stationsStatus"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "PlanRouteBackup is a backup copy of the PlanRoute function\n"
       }
     },
     "/routes/saved/{userId}": {
@@ -17535,8 +18199,41 @@
         "summary": "CreateStation creates a new charging station with the provided details\n"
       }
     },
+    "/stations-analytics": {
+      "get": {
+        "operationId": "GET:stations.GetStationSearchAnalytics",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "analytics": {
+                      "items": {
+                        "$ref": "#/components/schemas/stations.StationSearchAnalytics"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "analytics"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "GetStationSearchAnalytics retrieves all analytics data from\nev_station_search_analytics collection\n"
+      }
+    },
     "/stations.DeleteOldStations": {
       "get": {
+        "description": "Also deletes Google-sourced reviews (dataSource: \"google\") for the deleted stations\n",
         "operationId": "GET:stations.DeleteOldStations",
         "responses": {
           "200": {
@@ -17566,9 +18263,10 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "DeleteOldStations removes all stations that are older than 300 days as per TTL\n"
+        "summary": "DeleteOldStations removes all stations that are older than 30 days as per TTL\n"
       },
       "post": {
+        "description": "Also deletes Google-sourced reviews (dataSource: \"google\") for the deleted stations\n",
         "operationId": "POST:stations.DeleteOldStations",
         "responses": {
           "200": {
@@ -17598,7 +18296,116 @@
             "$ref": "#/components/responses/APIError"
           }
         },
-        "summary": "DeleteOldStations removes all stations that are older than 300 days as per TTL\n"
+        "summary": "DeleteOldStations removes all stations that are older than 30 days as per TTL\n"
+      }
+    },
+    "/stations/cleanup-nearby": {
+      "post": {
+        "operationId": "POST:stations.NearbyCleanup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "latitude",
+                  "longitude"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletionSummary": {
+                      "$ref": "#/components/schemas/stations.DeletionSummary"
+                    },
+                    "location": {
+                      "$ref": "#/components/schemas/stations.Location"
+                    }
+                  },
+                  "required": [
+                    "location",
+                    "deletionSummary"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "NearbyCleanup detects and returns location information from request coordinates\n"
+      }
+    },
+    "/stations/cleanup-nearby-keep5": {
+      "post": {
+        "description": "It keeps only the 5 closest stations and deletes all other stations within 5km radius\n",
+        "operationId": "POST:stations.NearbyCleanupKeep5",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "latitude",
+                  "longitude"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "deletionSummary": {
+                      "$ref": "#/components/schemas/stations.DeletionSummary"
+                    },
+                    "location": {
+                      "$ref": "#/components/schemas/stations.Location"
+                    }
+                  },
+                  "required": [
+                    "location",
+                    "deletionSummary"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "NearbyCleanupKeep5 detects and returns location information from request\ncoordinates\n"
       }
     },
     "/stations/search-nearby": {
@@ -17760,6 +18567,86 @@
           }
         },
         "summary": "SearchNearbyAllStations searches for all charging stations in database plus\ngoogle maps within a specified radius from given coordinates\n"
+      }
+    },
+    "/stations/search-nearby-all-stream": {
+      "post": {
+        "description": "Returns initial stations from database immediately, then streams new stations as they're fetched from Google Maps\n",
+        "operationId": "POST:stations.SearchNearbyAllStationsStream",
+        "responses": {
+          "200": {
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "SearchNearbyAllStationsStream streams nearby stations via Server-Sent Events\n(SSE)\n"
+      }
+    },
+    "/stations/search-nearby-db": {
+      "post": {
+        "description": "Returns StationSummary objects (same format as SearchNearbyAllStationsStream) Does not call Google API and does not consume credits\n",
+        "operationId": "POST:stations.SearchNearbyStationsFromDB",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  },
+                  "radius": {
+                    "format": "int64",
+                    "title": "Radius in meters\n",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "latitude",
+                  "longitude",
+                  "radius"
+                ],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "format": "int64",
+                      "type": "integer"
+                    },
+                    "stations": {
+                      "items": {
+                        "$ref": "#/components/schemas/stations.StationSummary"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "stations",
+                    "count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success response"
+          },
+          "default": {
+            "$ref": "#/components/responses/APIError"
+          }
+        },
+        "summary": "SearchNearbyStationsFromDB searches for charging stations only from database\ncollection\n"
       }
     },
     "/stations/upsert-from-maps": {
@@ -19395,12 +20282,6 @@
                     "userStatus": {
                       "title": "User status: active, inactive, signed_in, logged_out, account_deleted,\nsuspended, banned, guest, blocked, other\n",
                       "type": "string"
-                    },
-                    "vehicles": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
                     }
                   },
                   "required": [
@@ -19419,7 +20300,6 @@
                     "userRole",
                     "notificationSettings",
                     "interests",
-                    "vehicles",
                     "energyAnalytics",
                     "userImage",
                     "savedRoutes",
@@ -19518,113 +20398,6 @@
           }
         },
         "summary": "UpdateUser updates a user\n"
-      }
-    },
-    "/users/{userId}/app-settings": {
-      "get": {
-        "operationId": "GET:users.GetUserAppSettings",
-        "parameters": [
-          {
-            "allowEmptyValue": true,
-            "explode": false,
-            "in": "path",
-            "name": "userId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "appSettings": {
-                      "$ref": "#/components/schemas/users.AppSettings"
-                    }
-                  },
-                  "required": [
-                    "appSettings"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success response"
-          },
-          "default": {
-            "$ref": "#/components/responses/APIError"
-          }
-        },
-        "summary": "GetUserAppSettings returns a specific user's app settings\n"
-      },
-      "put": {
-        "operationId": "PUT:users.UpdateUserAppSettings",
-        "parameters": [
-          {
-            "allowEmptyValue": true,
-            "explode": false,
-            "in": "path",
-            "name": "userId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "style": "simple"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "properties": {
-                  "chargingPreferences": {
-                    "$ref": "#/components/schemas/users.ChargingPreferences"
-                  },
-                  "displayMode": {
-                    "type": "string"
-                  },
-                  "locationAndData": {
-                    "$ref": "#/components/schemas/users.LocationAndData"
-                  }
-                },
-                "required": [
-                  "displayMode",
-                  "locationAndData",
-                  "chargingPreferences"
-                ],
-                "type": "object"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ],
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Success response"
-          },
-          "default": {
-            "$ref": "#/components/responses/APIError"
-          }
-        },
-        "summary": "UpdateUserAppSettings updates a user's app settings\n"
       }
     },
     "/users/{userId}/basic-info": {
@@ -20883,8 +21656,11 @@
                     "title": "Required: Vehicle model (e.g., \"harrier-ev\")\n",
                     "type": "string"
                   },
+                  "range": {
+                    "$ref": "#/components/schemas/vehicles.AddVehicleRangeRequest"
+                  },
                   "registration": {
-                    "title": "Required: Vehicle registration number\n",
+                    "title": "Optional: Vehicle registration number\n",
                     "type": "string"
                   },
                   "variant": {
@@ -20896,7 +21672,8 @@
                   "make",
                   "model",
                   "variant",
-                  "registration"
+                  "registration",
+                  "range"
                 ],
                 "type": "object"
               }
@@ -21061,23 +21838,16 @@
             "application/json": {
               "schema": {
                 "properties": {
-                  "charging": {
-                    "$ref": "#/components/schemas/vehicles.UpdateVehicleChargingRequest"
-                  },
                   "range": {
                     "$ref": "#/components/schemas/vehicles.UpdateVehicleRangeRequest"
                   },
                   "registration": {
+                    "title": "Optional: Vehicle registration number\n",
                     "type": "string"
-                  },
-                  "specifications": {
-                    "$ref": "#/components/schemas/vehicles.UpdateVehicleSpecificationsRequest"
                   }
                 },
                 "required": [
                   "registration",
-                  "specifications",
-                  "charging",
                   "range"
                 ],
                 "type": "object"
