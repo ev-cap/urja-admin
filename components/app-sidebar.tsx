@@ -18,6 +18,7 @@ import {
   Route,
   Bell,
   Key,
+  Car,
   type LucideIcon,
 } from "lucide-react"
 import {
@@ -118,6 +119,11 @@ const defaultMenuItems: MenuItem[] = [
     title: "Notifications",
     url: "/dashboard/notifications",
     icon: Bell,
+  },
+  {
+    title: "Meta Vehicles",
+    url: "/dashboard/meta-vehicles",
+    icon: Car,
   },
   {
     title: "Settings",
